@@ -1,0 +1,379 @@
+#!/usr/bin/python
+
+'''
+A WebSocket to TCP socket proxy with support for "wss://" encryption.
+Copyright 2010 Joel Martin
+Licensed under LGPL version 3 (see docs/LICENSE.LGPL-3)
+
+You can make a cert/key with openssl using:
+openssl req -new -x509 -days 365 -nodes -out self.pem -keyout self.pem
+as taken from http://docs.python.org/dev/library/ssl.html#certificates
+
+'''
+
+import socket, optparse, time, os, sys, subprocess, errno, signal
+from select import select
+from urlparse import urlparse, parse_qs
+from wsproxy import WebSocketProxy
+from websocket import WebSocketServer, SplitHTTPHandler
+from nova import flags
+from nova import rpc
+
+FLAGS = flags.FLAGS
+
+
+class NovaVNCProxy(WebSocketProxy):
+
+    def __init__(self, *args, **kwargs):
+        # Save off proxy specific options
+        WebSocketServer.__init__(self, *args, **kwargs)
+
+    def poll(self):
+        pass
+
+    def started(self):
+        """
+        Called after Websockets server startup (i.e. after daemonize)
+        """
+        # Need to call wrapped command after daemonization so we can
+        # know when the wrapped command exits
+        if self.wrap_cmd:
+            print "  - proxying from %s:%s to '%s' (port %s)\n" % (
+                    self.listen_host, self.listen_port,
+                    " ".join(self.wrap_cmd), self.target_port)
+            self.run_wrap_cmd()
+        else:
+            print "  - proxying from %s:%s to %s:%s\n" % (
+                    self.listen_host, self.listen_port,
+                    self.target_host, self.target_port)
+
+    def do_handshake(self, sock, address):
+        """
+        do_handshake does the following:
+        - Peek at the first few bytes from the socket.
+        - If the connection is Flash policy request then answer it,
+          close the socket and return.
+        - If the connection is an HTTPS/SSL/TLS connection then SSL
+          wrap the socket.
+        - Read from the (possibly wrapped) socket.
+        - If we have received a HTTP GET request and the webserver
+          functionality is enabled, answer it, close the socket and
+          return.
+        - Assume we have a WebSockets connection, parse the client
+          handshake data.
+        - Send a WebSockets handshake server response.
+        - Return the socket for this WebSocket client.
+        """
+
+        stype = ""
+
+        ready = select([sock], [], [], 3)[0]
+        if not ready:
+            raise self.EClose("ignoring socket not ready")
+        # Peek, but do not read the data so that we have a opportunity
+        # to SSL wrap the socket first
+        handshake = sock.recv(1024, socket.MSG_PEEK)
+        #self.msg("Handshake [%s]" % repr(handshake))
+
+        if handshake == "":
+            raise self.EClose("ignoring empty handshake")
+
+        elif handshake.startswith("<policy-file-request/>"):
+            # Answer Flash policy request
+            handshake = sock.recv(1024)
+            sock.send(self.policy_response)
+            raise self.EClose("Sending flash policy response")
+
+        elif handshake[0] in ("\x16", "\x80"):
+            # SSL wrap the connection
+            if not os.path.exists(self.cert):
+                raise self.EClose("SSL connection but '%s' not found"
+                                  % self.cert)
+            try:
+                retsock = ssl.wrap_socket(
+                        sock,
+                        server_side=True,
+                        certfile=self.cert,
+                        keyfile=self.key)
+            except ssl.SSLError, x:
+                if x.args[0] == ssl.SSL_ERROR_EOF:
+                    raise self.EClose("")
+                else:
+                    raise
+
+            scheme = "wss"
+            stype = "SSL/TLS (wss://)"
+
+        elif self.ssl_only:
+            raise self.EClose("non-SSL connection received but disallowed")
+
+        else:
+            retsock = sock
+            scheme = "ws"
+            stype = "Plain non-SSL (ws://)"
+
+        # Now get the data from the socket
+        handshake = retsock.recv(4096)
+
+        if len(handshake) == 0:
+            raise self.EClose("Client closed during handshake")
+
+        # Check for and handle normal web requests
+        if handshake.startswith('GET ') and \
+            handshake.find('Upgrade: WebSocket\r\n') == -1:
+            if not self.web:
+                raise self.EClose("Normal web request received but disallowed")
+            sh = SplitHTTPHandler(handshake, retsock, address)
+            if sh.last_code < 200 or sh.last_code >= 300:
+                raise self.EClose(sh.last_message)
+            elif self.verbose:
+                raise self.EClose(sh.last_message)
+            else:
+                raise self.EClose("")
+
+        #self.msg("handshake: " + repr(handshake))
+        # Parse client WebSockets handshake
+        h = self.parse_handshake(handshake)
+
+        if h.get('key3'):
+            trailer = self.gen_md5(h)
+            pre = "Sec-"
+            ver = 76
+        else:
+            trailer = ""
+            pre = ""
+            ver = 75
+
+        self.msg("%s: %s WebSocket connection (version %s)"
+                    % (address[0], stype, ver))
+
+        # Send server WebSockets handshake response
+        response = self.server_handshake % (pre, h['Origin'], pre,
+                scheme, h['Host'], h['path'], pre, trailer)
+        #self.msg("sending response:", repr(response))
+        retsock.send(response)
+
+        # Return the WebSockets socket which may be SSL wrapped
+        return h, retsock
+
+    def delete_expired_tokens(self):
+        now = time.time()
+        to_delete = []
+        for k, v in self.tokens.items():
+            if now - v['last_activity_at'] > 120:
+                to_delete.append(k)
+
+        for k in to_delete:
+            print "deleting token: %s" % k
+            del self.tokens[k]
+
+    def start_server(self):
+        """
+        Daemonize if requested. Listen for for connections. Run
+        do_handshake() method for each connection. If the connection
+        is a WebSockets client then call new_client() method (which must
+        be overridden) for each new client connection.
+        """
+
+        lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        lsock.bind((self.listen_host, self.listen_port))
+        lsock.listen(100)
+
+        if self.daemon:
+            self.daemonize(self, keepfd=lsock.fileno())
+
+        self.started()  # Some things need to happen after daemonizing
+
+        # Reep zombies
+        signal.signal(signal.SIGCHLD, self.top_SIGCHLD)
+        signal.signal(signal.SIGINT, self.do_SIGINT)
+
+        server = self
+        server.tokens = {}
+        class Callback:
+            def __call__(self, data, message):
+                if data['method'] == 'authorize_vnc_console':
+                    server.tokens[data['args']['token']] = {'args': data['args'], 'last_activity_at': time.time()}
+                    print "Receiving token:"
+                    print data['args']
+#                    AjaxConsoleProxy.tokens[data['args']['token']] =  \
+#                        {'args': data['args'], 'last_activity': time.time()}
+
+        conn = rpc.Connection.instance(new=True)
+        consumer = rpc.TopicConsumer(
+                        connection=conn,
+                        topic=FLAGS.vnc_console_proxy_topic)
+        consumer.register_callback(Callback())
+
+
+        last_fetch = time.time()
+        while True:
+            try:
+                try:
+                    csock = startsock = None
+                    pid = err = 0
+
+                    try:
+                        self.poll()
+
+                        ready = select([lsock], [], [], 0.1)[0];
+                        if lsock in ready:
+                            startsock, address = lsock.accept()
+                        else:
+                            now = time.time()
+                            if now - last_fetch > 0.1:
+                                last_fetch = now
+                                self.delete_expired_tokens()
+                                consumer.fetch(auto_ack=True, enable_callbacks=True)
+                            continue
+                    except Exception, exc:
+                        if hasattr(exc, 'errno'):
+                            err = exc.errno
+                        else:
+                            err = exc[0]
+                        if err == errno.EINTR:
+                            self.vmsg("Ignoring interrupted syscall")
+                            continue
+                        else:
+                            raise
+
+                    self.vmsg('%s: forking handler' % address[0])
+                    pid = os.fork()
+
+                    if pid == 0:
+                        # handler process
+                        hs, csock = self.do_handshake(startsock, address)
+
+                        qs = parse_qs(urlparse(hs['path']).query)
+                        token = qs['token'][0]
+
+                        if not self.tokens.has_key(token):
+                            csock.close()
+                            return
+
+                        host = self.tokens[token]['args']['host']
+                        port = int(self.tokens[token]['args']['port'])
+
+                        self.new_client(csock, host, port)
+                    else:
+                        # parent process
+                        self.handler_id += 1
+
+                except self.EClose, exc:
+                    # Connection was not a WebSockets connection
+                    if exc.args[0]:
+                        self.msg("%s: %s" % (address[0], exc.args[0]))
+                except KeyboardInterrupt, exc:
+                    pass
+                except Exception, exc:
+                    self.msg("handler exception: %s" % str(exc))
+                    if self.verbose:
+                        self.msg(traceback.format_exc())
+
+            finally:
+                if csock and csock != startsock:
+                    csock.close()
+                if startsock:
+                    startsock.close()
+
+            if pid == 0:
+                break # Child process exits
+
+    # 
+    # Routines above this point are run in the master listener
+    # process.
+    #
+
+    #
+    # Routines below this point are connection handler routines and
+    # will be run in a separate forked process for each connection.
+    #
+
+    def started(self):
+        pass
+
+    def new_client(self, client, host, port):
+        """
+        Called after a new WebSocket connection has been established.
+        """
+
+        self.rec = None
+        if self.record:
+            # Record raw frame data as a JavaScript compatible file
+            fname = "%s.%s" % (self.record,
+                                self.handler_id)
+            self.msg("opening record file: %s" % fname)
+            self.rec = open(fname, 'w+')
+            self.rec.write("var VNC_frame_data = [\n")
+
+        # Connect to the target
+        self.msg("connecting to: %s:%s" % (
+                 host, port))
+        tsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tsock.connect((host, port))
+
+        if self.verbose and not self.daemon:
+            print self.traffic_legend
+
+        # Stat proxying
+        try:
+            self.do_proxy(client, tsock)
+        except:
+            if tsock:
+                tsock.close()
+                #self.vmsg("%s:%s: Target closed" %(
+                #    self.target_host, self.target_port))
+            if self.rec:
+                self.rec.write("'EOF']\n")
+                self.rec.close()
+            raise
+
+
+if __name__ == '__main__':
+    usage = "\n    %prog [options]"
+    usage += "\n    %prog [options]"
+    usage += " [source_addr:]source_port -- WRAP_COMMAND_LINE"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("--verbose", "-v", action="store_true",
+            help="verbose messages and per frame traffic")
+    parser.add_option("--record",
+            help="record sessions to FILE.[session_number]", metavar="FILE")
+    parser.add_option("--daemon", "-D",
+            dest="daemon", action="store_true",
+            help="become a daemon (background process)")
+    parser.add_option("--cert", default="self.pem",
+            help="SSL certificate file")
+    parser.add_option("--key", default=None,
+            help="SSL key file (if separate from cert)")
+    parser.add_option("--ssl-only", action="store_true",
+            help="disallow non-encrypted connections")
+    parser.add_option("--web", default=None, metavar="DIR",
+            help="run webserver on same port. Serve files from DIR.")
+#    parser.add_option("--wrap-mode", default="exit", metavar="MODE",
+#            choices=["exit", "ignore", "respawn"],
+#            help="action to take when the wrapped program exits "
+#            "or daemonizes: exit (default), ignore, respawn")
+    (opts, args) = parser.parse_args()
+
+    # Sanity checks
+
+    if len(args) < 1:
+        parser.error("Too few arguments")
+    if len(args) > 1:
+        parser.error("Too many arguments")
+
+    if opts.ssl_only and not os.path.exists(opts.cert):
+        parser.error("SSL only and %s not found" % opts.cert)
+
+    # Parse host:port and convert ports to numbers
+    if args[0].count(':') > 0:
+        opts.listen_host, opts.listen_port = args[0].split(':')
+    else:
+        opts.listen_host, opts.listen_port = '', args[0]
+    try:    opts.listen_port = int(opts.listen_port)
+    except: parser.error("Error parsing listen port")
+
+    # Create and start the WebSockets proxy
+    server = NovaVNCProxy(**opts.__dict__)
+    server.start_server()

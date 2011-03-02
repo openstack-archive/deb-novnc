@@ -95,6 +95,7 @@
 
             host = WebUtil.getQueryVar('host', null);
             port = WebUtil.getQueryVar('port', null);
+            token = WebUtil.getQueryVar('token', null);
             password = WebUtil.getQueryVar('password', '');
             if ((!host) || (!port)) {
                 updateState('failed',
@@ -108,7 +109,7 @@
                            'local_cursor': WebUtil.getQueryVar('cursor', true),
                            'shared':       WebUtil.getQueryVar('shared', true),
                            'updateState':  updateState});
-            rfb.connect(host, port, password);
+            rfb.connect(host, port, password, token);
         };
         </script>
 
