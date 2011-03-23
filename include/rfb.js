@@ -31,7 +31,7 @@ var that           = {},         // Public API interface
     //
     // Private RFB namespace variables
     //
-    rfb_token      = '',
+    nova_token      = '',
     rfb_host       = '',
     rfb_port       = 5900,
     rfb_password   = '',
@@ -226,7 +226,7 @@ function connect() {
     } else {
         uri = "ws://";
     }
-    uri += document.location.host + "?host=" + rfb_host + "&port=" + rfb_port + "&token=" + rfb_token;
+    uri += document.location.host + "/data?host=" + rfb_host + "&port=" + rfb_port + "&token=" + nova_token;
     Util.Info("connecting to " + uri);
     ws.open(uri);
 
@@ -1410,7 +1410,7 @@ clientCutText = function(text) {
 that.connect = function(host, port, password, token) {
     //Util.Debug(">> connect");
 
-    rfb_token      = token;
+    nova_token     = token;
     rfb_host       = host;
     rfb_port       = port;
     rfb_password   = (password !== undefined)   ? password : "";
