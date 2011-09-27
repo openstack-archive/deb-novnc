@@ -84,13 +84,14 @@
         }
 
         window.onload = function () {
-            var host, port, password;
+            var host, port, password, token;
 
             $D('sendCtrlAltDelButton').onclick = sendCtrlAltDel;
 
             document.title = unescape(WebUtil.getQueryVar('title', 'noVNC'));
-            host = WebUtil.getQueryVar('host', null);
-            port = WebUtil.getQueryVar('port', null);
+            token = WebUtil.getQueryVar('token');
+            host = window.location.hostname;
+            port = window.location.port;
             password = WebUtil.getQueryVar('password', '');
             if ((!host) || (!port)) {
                 updateState('failed',
@@ -105,6 +106,8 @@
                            'shared':       WebUtil.getQueryVar('shared', true),
                            'updateState':  updateState,
                            'onPasswordRequired':  passwordRequired});
+
+            WebUtil.createCookie('token', token, 1)
             rfb.connect(host, port, password);
         };
         </script>
