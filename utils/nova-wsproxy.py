@@ -162,4 +162,3 @@ if __name__ == '__main__':
     # Create and start the NovaWebSockets proxy
     server = NovaWebSocketProxy(**opts.__dict__)
     server.start_server()
-
