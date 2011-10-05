@@ -108,6 +108,8 @@ if __name__ == '__main__':
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("--verbose", "-v", action="store_true",
             help="verbose messages and per frame traffic")
+    parser.add_option("--flagfile", "-f", default=None,
+            help="Nova flagfile")
     parser.add_option("--record",
             help="record sessions to FILE.[session_number]", metavar="FILE")
     parser.add_option("--daemon", "-D",
@@ -158,6 +160,11 @@ if __name__ == '__main__':
     # Setup flags
     utils.default_flagfile()
     FLAGS(sys.argv)
+
+    # FIXME - the proxy base class does not recognize the flagfile
+    # option so remove if present
+    if  opts.__dict__.get('flagfile'):
+        del opts.__dict__['flagfile']
 
     # Create and start the NovaWebSockets proxy
     server = NovaWebSocketProxy(**opts.__dict__)
