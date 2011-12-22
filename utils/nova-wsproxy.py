@@ -19,6 +19,7 @@ import time
 
 import wsproxy
 
+from nova import context
 from nova import flags
 from nova import log as logging
 from nova import rpc
@@ -35,7 +36,7 @@ flags.DEFINE_flag(flags.HelpXMLFlag())
 
 class NovaWebSocketProxy(wsproxy.WebSocketProxy):
     def __init__(self, *args, **kwargs):
-        self.register_nova_listeners()
+        #self.register_nova_listeners()
         wsproxy.WebSocketProxy.__init__(self, *args, **kwargs)
 
     def register_nova_listeners(self):
@@ -73,12 +74,16 @@ class NovaWebSocketProxy(wsproxy.WebSocketProxy):
         cookie = Cookie.SimpleCookie()
         cookie.load(self.headers.getheader('cookie'))
         token = cookie['token'].value
-        if not token in self.tokens:
+        ctxt = context.get_admin_context()
+        connect_info = rpc.call(ctxt, 'consoleauth',
+                                {'method': 'check_token',
+                                 'args': {'token': token }})
+
+        if not connect_info:
             raise Exception("Invalid Token")
 
-        # Get connection info
-        host = self.tokens[token]['args']['host']
-        port = int(self.tokens[token]['args']['port'])
+        host = connect_info['host']
+        port = int(connect_info['port'])
         # Connect to the target
         self.msg("connecting to: %s:%s" % (
                  host, port))
