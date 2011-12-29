@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
 '''
-A WebSocket to TCP socket proxy with support for "wss://" encryption.
+Websocket proxy that is compatible with Openstack Nova.
+Leverages wsproxy.py by Joel Martin
 Copyright 2011 Joel Martin
+Copyright 2011 Openstack
 Licensed under LGPL version 3 (see docs/LICENSE.LGPL-3)
-
-You can make a cert/key with openssl using:
-openssl req -new -x509 -days 365 -nodes -out self.pem -keyout self.pem
-as taken from http://docs.python.org/dev/library/ssl.html#certificates
-
 '''
 
 import Cookie
@@ -36,36 +33,7 @@ flags.DEFINE_flag(flags.HelpXMLFlag())
 
 class NovaWebSocketProxy(wsproxy.WebSocketProxy):
     def __init__(self, *args, **kwargs):
-        #self.register_nova_listeners()
         wsproxy.WebSocketProxy.__init__(self, *args, **kwargs)
-
-    def register_nova_listeners(self):
-        self.tokens = {}
-
-        class TopicProxy():
-            @staticmethod
-            def authorize_vnc_console(context, **kwargs):
-                print "Received a token: %s" % kwargs
-                self.tokens[kwargs['token']] =  \
-                    {'args': kwargs, 'last_activity': time.time()}
-
-        self.conn = rpc.create_connection(new=True)
-        self.conn.create_consumer(
-                'vncproxy',
-                TopicProxy)
-
-        def delete_expired_tokens():
-            now = time.time()
-            to_delete = []
-            for k, v in self.tokens.items():
-                if now - v['last_activity'] > FLAGS.vnc_proxy_idle_timeout:
-                    to_delete.append(k)
-
-            for k in to_delete:
-                del self.tokens[k]
-
-        self.conn.consume_in_thread()
-        utils.LoopingCall(delete_expired_tokens).start(1)
 
     def new_client(self):
         """
@@ -84,11 +52,24 @@ class NovaWebSocketProxy(wsproxy.WebSocketProxy):
 
         host = connect_info['host']
         port = int(connect_info['port'])
+
         # Connect to the target
         self.msg("connecting to: %s:%s" % (
                  host, port))
         tsock = self.socket(host, port,
                 connect=True)
+
+        # Handshake as necessary
+        if connect_info.get('internal_access_path'):
+            tsock.send("CONNECT %s HTTP/1.1\r\n\r\n" %
+                        connect_info['internal_access_path'])
+            while True:
+                data = tsock.recv(4096, socket.MSG_PEEK)
+                if data.find("\r\n\r\n") != -1:
+                    if not data.split("\r\n")[0].find("200"):
+                        raise Exception("Invalid Connection Info")
+                    tsock.recv(len(data))
+                    break
 
         if self.verbose and not self.daemon:
             print(self.traffic_legend)
