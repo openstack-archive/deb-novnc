@@ -1,20 +1,39 @@
 #!/usr/bin/env python
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright (c) 2012 Openstack, LLC.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+#!/usr/bin/env python
 
 '''
 Websocket proxy that is compatible with Openstack Nova.
 Leverages wsproxy.py by Joel Martin
-Copyright 2011 Joel Martin
-Copyright 2011 Openstack
-Licensed under LGPL version 3 (see docs/LICENSE.LGPL-3)
 '''
 
 import Cookie
-import optparse
 import socket
 import sys
 import time
 
-import wsproxy
+try:
+    import wsproxy
+except Exception as e:
+    print ("Missing noVNC.  You must clone novnc from "
+           "git://github.com/cloudbuilders/noVNC and make sure that the "
+           "noVNC/utils directory is in your path.")
+    sys.exit(1)
 
 from nova import context
 from nova import flags
@@ -24,8 +43,27 @@ from nova import utils
 
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('vnc_proxy_idle_timeout', 180,
-                     'Seconds before idle connection destroyed')
+flags.DEFINE_boolean('verbose', False,
+                     'Verbose messages and per frame traffic')
+flags.DEFINE_boolean('record', False,
+                     'Record sessions to FILE.[session_number]')
+flags.DEFINE_boolean('daemon', False,
+                     'Become a daemon (background process)')
+flags.DEFINE_string('cert', 'self.pem',
+                     'SSL certificate file')
+flags.DEFINE_string('key', None,
+                     'SSL key file (if separate from cert)')
+flags.DEFINE_boolean('ssl_only', False,
+                     'Disallow non-encrypted connections')
+flags.DEFINE_boolean('source_is_ipv6', False,
+                     'Source is ipv6')
+flags.DEFINE_string('web', False,
+                     'Run webserver on same port. Serve files from DIR.')
+flags.DEFINE_string('listen_host', '0.0.0.0',
+                     'Host on which to listen for incoming requests')
+flags.DEFINE_integer('listen_port', 6080,
+                     'Port on which to listen for incoming requests')
+
 flags.DEFINE_flag(flags.HelpFlag())
 flags.DEFINE_flag(flags.HelpshortFlag())
 flags.DEFINE_flag(flags.HelpXMLFlag())
@@ -86,72 +124,28 @@ class NovaWebSocketProxy(wsproxy.WebSocketProxy):
             raise
 
 
+
 if __name__ == '__main__':
-    usage = "\n    %prog [options]"
-    usage += " [source_addr:]source_port target_addr:target_port"
-    usage += "\n    %prog [options]"
-    usage += " [source_addr:]source_port -- WRAP_COMMAND_LINE"
-    parser = optparse.OptionParser(usage=usage)
-    parser.add_option("--verbose", "-v", action="store_true",
-            help="verbose messages and per frame traffic")
-    parser.add_option("--flagfile", "-f", default=None,
-            help="Nova flagfile")
-    parser.add_option("--record",
-            help="record sessions to FILE.[session_number]", metavar="FILE")
-    parser.add_option("--daemon", "-D",
-            dest="daemon", action="store_true",
-            help="become a daemon (background process)")
-    parser.add_option("--cert", default="self.pem",
-            help="SSL certificate file")
-    parser.add_option("--key", default=None,
-            help="SSL key file (if separate from cert)")
-    parser.add_option("--ssl-only", action="store_true",
-            help="disallow non-encrypted connections")
-    parser.add_option("--web", default=None, metavar="DIR",
-            help="run webserver on same port. Serve files from DIR.")
-    parser.add_option("--wrap-mode", default="exit", metavar="MODE",
-            choices=["exit", "ignore", "respawn"],
-            help="action to take when the wrapped program exits "
-            "or daemonizes: exit (default), ignore, respawn")
-    (opts, args) = parser.parse_args()
-
-    # Sanity checks
-    if len(args) < 1:
-        parser.error("Too few arguments")
-    if sys.argv.count('--'):
-        opts.wrap_cmd = args[1:]
-    else:
-        opts.wrap_cmd = None
-        if len(args) > 1:
-            parser.error("Too many arguments")
-
-    if opts.ssl_only and not os.path.exists(opts.cert):
-        parser.error("SSL only and %s not found" % opts.cert)
-
-    # Parse host:port and convert ports to numbers
-    if args[0].count(':') > 0:
-        opts.listen_host, opts.listen_port = args[0].rsplit(':', 1)
-    else:
-        opts.listen_host, opts.listen_port = '', args[0]
-
-    try:
-        opts.listen_port = int(opts.listen_port)
-    except:
-        parser.error("Error parsing listen port")
-
-    # Dummy values that wsproxy expects
-    opts.target_host = 'ignore'
-    opts.target_port = 'ignore'
+    if FLAGS.ssl_only and not os.path.exists(FLAGS.cert):
+        parser.error("SSL only and %s not found" % FLAGS.cert)
 
     # Setup flags
     utils.default_flagfile()
     FLAGS(sys.argv)
 
-    # FIXME - the proxy base class does not recognize the flagfile
-    # option so remove if present
-    if  opts.__dict__.get('flagfile'):
-        del opts.__dict__['flagfile']
-
     # Create and start the NovaWebSockets proxy
-    server = NovaWebSocketProxy(**opts.__dict__)
+    server = NovaWebSocketProxy(listen_host=FLAGS.listen_host,
+                                listen_port=FLAGS.listen_port,
+                                source_is_ipv6=FLAGS.source_is_ipv6,
+                                verbose=FLAGS.verbose,
+                                cert=FLAGS.cert,
+                                key=FLAGS.key,
+                                ssl_only=FLAGS.ssl_only,
+                                daemon=FLAGS.daemon,
+                                record=FLAGS.record,
+                                web=FLAGS.web,
+                                target_host='ignore',
+                                target_port='ignore',
+                                wrap_mode='exit',
+                                wrap_cmd=None)
     server.start_server()
