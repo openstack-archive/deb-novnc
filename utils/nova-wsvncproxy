@@ -27,13 +27,7 @@ import socket
 import sys
 import time
 
-try:
-    import wsproxy
-except Exception as e:
-    print ("Missing noVNC.  You must clone novnc from "
-           "git://github.com/cloudbuilders/noVNC and make sure that the "
-           "noVNC/utils directory is in your path.")
-    sys.exit(1)
+import wsproxy
 
 from nova import context
 from nova import flags
