@@ -53,9 +53,9 @@ flags.DEFINE_boolean('source_is_ipv6', False,
                      'Source is ipv6')
 flags.DEFINE_string('web', False,
                      'Run webserver on same port. Serve files from DIR.')
-flags.DEFINE_string('listen_host', '0.0.0.0',
+flags.DEFINE_string('novncproxy_host', '0.0.0.0',
                      'Host on which to listen for incoming requests')
-flags.DEFINE_integer('listen_port', 6080,
+flags.DEFINE_integer('novncproxy_port', 6080,
                      'Port on which to listen for incoming requests')
 
 flags.DEFINE_flag(flags.HelpFlag())
@@ -128,8 +128,8 @@ if __name__ == '__main__':
     FLAGS(sys.argv)
 
     # Create and start the NovaWebSockets proxy
-    server = NovaWebSocketProxy(listen_host=FLAGS.listen_host,
-                                listen_port=FLAGS.listen_port,
+    server = NovaWebSocketProxy(listen_host=FLAGS.novncproxy_host,
+                                listen_port=FLAGS.novncproxy_port,
                                 source_is_ipv6=FLAGS.source_is_ipv6,
                                 verbose=FLAGS.verbose,
                                 cert=FLAGS.cert,
