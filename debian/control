@@ -1,13 +1,28 @@
 Source: novnc
 Section: web
 Priority: optional
-Maintainer: Joel Martin <github@martintribe.org>
-Build-Depends: debhelper (>= 7.0.0~)
-Standards-Version: 3.8.3
-Homepage: https://github.com/kanaka/noVNC/
+Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
+Uploaders: Ghe Rivero <ghe.rivero@stackops.com>
+Build-Depends: debhelper (>= 7.0.50), python-dev (>=2.6.6-3~)
+Standards-Version: 3.9.2
+Homepage: https://github.com/cloudbuilders/noVNC
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/novnc.git;a=summary
+Vcs-Git: git://anonscm.debian.org/openstack/novnc.git
+X-Python-Version: >= 2.6
 
 Package: novnc
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, python (>= 2.4)
+Depends: ${shlibs:Depends}, ${misc:Depends}, python-novnc, ${python:Depends},
+ python (>= 2.6.6-3~)
 Description: HTML5 VNC client
  VNC client using HTML5 (WebSockets, Canvas) with encryption (wss://) support.
+
+Package: python-novnc
+Architecture: all
+Section: python
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
+  python (>= 2.6.6-3~)
+Description: HTML5 VNC client - libraries
+ VNC client using HTML5 (WebSockets, Canvas) with encryption (wss://) support.
+ .
+ This package installs the core Python parts of NoVNC.

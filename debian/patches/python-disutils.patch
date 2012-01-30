@@ -1,0 +1,43 @@
+--- /dev/null
++++ b/setup.py
+@@ -0,0 +1,14 @@
++#!/usr/bin/env python
++
++from distutils.core import setup
++
++setup(name='python-novnc',
++      version='2012.1~e3',
++      description='NoVNC python libraries',
++      author='Ghe Rivero',
++      author_email='ghe.rivero@stackops.com',
++      url='http://www.stackops.com',
++      packages = ['novnc'],
++      package_dir = {'novnc':'utils'},
++      py_modules=['wsproxy','websocket','web','json2graph','img2js'],
++)
+--- /dev/null
++++ b/utils/__init__.py
+@@ -0,0 +1 @@
++# vim: tabstop=4 shiftwidth=4 softtabstop=4
+--- a/utils/nova-novncproxy
++++ b/utils/nova-novncproxy
+@@ -27,7 +27,7 @@
+ import sys
+ import time
+ 
+-import wsproxy
++from novnc import wsproxy
+ 
+ from nova import context
+ from nova import flags
+--- a/utils/websockify
++++ b/utils/websockify
+@@ -13,7 +13,7 @@
+ 
+ import socket, optparse, time, os, sys, subprocess
+ from select import select
+-from websocket import WebSocketServer
++from novnc.websocket import WebSocketServer
+ 
+ class WebSocketProxy(WebSocketServer):
+     """

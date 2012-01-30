@@ -1,14 +1,16 @@
 #!/usr/bin/make -f
 
-# Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+# Verbose mode
+# export DH_VERBOSE=1
 
-clean:
+%:
+	dh $@ --with python2
+
+override_dh_clean:
 	make -C utils clean
-	dh clean
+	dh_clean
 
 build:
 	make -C utils rebind.so
+	dh build
 
-%:
-	dh ${@}
