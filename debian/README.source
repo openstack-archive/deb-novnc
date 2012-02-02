@@ -1,0 +1,12 @@
+= 2012.1~e3+dfsg
+ * The upstream tarball constains four files without source code:
+  ./docs/rfbproto-3.7.pdf
+  ./docs/rfbproto-3.3.pdf
+  ./docs/rfbproto-3.8.pdf
+  ./include/web-socket-js/WebSocketMain.swf
+   that have been removed from the repackaged tarball
+
+ * file include/web-socket-js/swfobject.js was ofuscated and has been copied from original source
+ * include/logo.js and tests/face.png.js
+
+ -- Ghe Rivero <ghe@debian.org>, Fri,  3 Feb 2012 00:16:43 +0100
