@@ -25,22 +25,17 @@ Leverages wsproxy.py by Joel Martin
 import Cookie
 import socket
 import sys
-import time
 
 import wsproxy
 
 from nova import context
 from nova import flags
-from nova import log as logging
 from nova import rpc
 from nova import utils
 from nova.openstack.common import cfg
 
 
 opts = [
-    cfg.BoolOpt('verbose',
-                default=False,
-                help='Verbose messages and per frame traffic'),
     cfg.BoolOpt('record',
                 default=False,
                 help='Record sessions to FILE.[session_number]'),
@@ -70,7 +65,7 @@ opts = [
                help='Port on which to listen for incoming requests'),
     ]
 FLAGS = flags.FLAGS
-FLAGS.add_options(opts)
+FLAGS.register_cli_opts(opts)
 
 
 class NovaWebSocketProxy(wsproxy.WebSocketProxy):
