@@ -25,42 +25,47 @@ Leverages wsproxy.py by Joel Martin
 import Cookie
 import socket
 import sys
-import time
 
 import wsproxy
 
 from nova import context
 from nova import flags
-from nova import log as logging
 from nova import rpc
 from nova import utils
+from nova.openstack.common import cfg
 
 
+opts = [
+    cfg.BoolOpt('record',
+                default=False,
+                help='Record sessions to FILE.[session_number]'),
+    cfg.BoolOpt('daemon',
+                default=False,
+                help='Become a daemon (background process)'),
+    cfg.BoolOpt('ssl_only',
+                default=False,
+                help='Disallow non-encrypted connections'),
+    cfg.BoolOpt('source_is_ipv6',
+                default=False,
+                help='Source is ipv6'),
+    cfg.StrOpt('cert',
+               default='self.pem',
+               help='SSL certificate file'),
+    cfg.StrOpt('key',
+               default=None,
+               help='SSL key file (if separate from cert)'),
+    cfg.StrOpt('web',
+               default='.',
+               help='Run webserver on same port. Serve files from DIR.'),
+    cfg.StrOpt('novncproxy_host',
+               default='0.0.0.0',
+               help='Host on which to listen for incoming requests'),
+    cfg.IntOpt('novncproxy_port',
+               default=6080,
+               help='Port on which to listen for incoming requests'),
+    ]
 FLAGS = flags.FLAGS
-flags.DEFINE_boolean('verbose', False,
-                     'Verbose messages and per frame traffic')
-flags.DEFINE_boolean('record', False,
-                     'Record sessions to FILE.[session_number]')
-flags.DEFINE_boolean('daemon', False,
-                     'Become a daemon (background process)')
-flags.DEFINE_string('cert', 'self.pem',
-                     'SSL certificate file')
-flags.DEFINE_string('key', None,
-                     'SSL key file (if separate from cert)')
-flags.DEFINE_boolean('ssl_only', False,
-                     'Disallow non-encrypted connections')
-flags.DEFINE_boolean('source_is_ipv6', False,
-                     'Source is ipv6')
-flags.DEFINE_string('web', False,
-                     'Run webserver on same port. Serve files from DIR.')
-flags.DEFINE_string('novncproxy_host', '0.0.0.0',
-                     'Host on which to listen for incoming requests')
-flags.DEFINE_integer('novncproxy_port', 6080,
-                     'Port on which to listen for incoming requests')
-
-flags.DEFINE_flag(flags.HelpFlag())
-flags.DEFINE_flag(flags.HelpshortFlag())
-flags.DEFINE_flag(flags.HelpXMLFlag())
+FLAGS.register_cli_opts(opts)
 
 
 class NovaWebSocketProxy(wsproxy.WebSocketProxy):
@@ -77,7 +82,7 @@ class NovaWebSocketProxy(wsproxy.WebSocketProxy):
         ctxt = context.get_admin_context()
         connect_info = rpc.call(ctxt, 'consoleauth',
                                 {'method': 'check_token',
-                                 'args': {'token': token }})
+                                 'args': {'token': token}})
 
         if not connect_info:
             raise Exception("Invalid Token")
@@ -113,10 +118,8 @@ class NovaWebSocketProxy(wsproxy.WebSocketProxy):
             if tsock:
                 tsock.shutdown(socket.SHUT_RDWR)
                 tsock.close()
-                self.vmsg("%s:%s: Target closed" %(
-                    host, port))
+                self.vmsg("%s:%s: Target closed" % (host, port))
             raise
-
 
 
 if __name__ == '__main__':
