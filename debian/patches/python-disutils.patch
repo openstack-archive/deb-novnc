@@ -21,9 +21,9 @@
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
 --- a/utils/nova-novncproxy
 +++ b/utils/nova-novncproxy
-@@ -27,7 +27,7 @@
+@@ -26,7 +26,7 @@
+ import socket
  import sys
- import time
  
 -import wsproxy
 +from novnc import wsproxy
