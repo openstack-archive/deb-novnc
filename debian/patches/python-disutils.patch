@@ -19,6 +19,7 @@
 +++ b/utils/__init__.py
 @@ -0,0 +1 @@
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
+<<<<<<< HEAD
 --- a/utils/nova-novncproxy
 +++ b/utils/nova-novncproxy
 @@ -26,7 +26,7 @@
@@ -41,3 +42,5 @@
  
  class WebSocketProxy(WebSocketServer):
      """
+=======
+>>>>>>> c040054fdabf6efb78455c560f9a4090fed22b6b
