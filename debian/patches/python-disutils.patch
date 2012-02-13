@@ -19,25 +19,3 @@
 +++ b/utils/__init__.py
 @@ -0,0 +1 @@
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
---- a/utils/nova-novncproxy
-+++ b/utils/nova-novncproxy
-@@ -27,7 +27,7 @@
- import sys
- import time
- 
--import wsproxy
-+from novnc import wsproxy
- 
- from nova import context
- from nova import flags
---- a/utils/websockify
-+++ b/utils/websockify
-@@ -13,7 +13,7 @@
- 
- import socket, optparse, time, os, sys, subprocess
- from select import select
--from websocket import WebSocketServer
-+from novnc.websocket import WebSocketServer
- 
- class WebSocketProxy(WebSocketServer):
-     """
