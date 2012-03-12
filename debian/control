@@ -5,7 +5,7 @@ Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
 Uploaders: Ghe Rivero <ghe.rivero@stackops.com>,
 	   Thomas Goirand <zigo@debian.org>
 Build-Depends: debhelper (>= 7.0.50), python-dev (>=2.6.6-3~)
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 Homepage: https://github.com/cloudbuilders/noVNC
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/novnc.git;a=summary
 Vcs-Git: git://anonscm.debian.org/openstack/novnc.git
