@@ -1,5 +1,10 @@
-novnc (2012.1~e3+dfsg-2) unstable; urgency=low
+novnc (2012.1~e3+dfsg+1-2) unstable; urgency=low
 
+  [ Ghe Rivero ]
+  * Bumped Debian Policy Version
+  * Updated copyright file
+
+  [ Thomas Goirand ]
   * Added a debian/novnc.postinst creating nova user and group.
   * Added a debian/gbp.conf
 
