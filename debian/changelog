@@ -1,12 +1,7 @@
-novnc (2012.1~e3+dfsg-3) unstable; urgency=low
-
-  * Added a debian/gbp.conf
-
- -- Thomas Goirand <zigo@debian.org>  Sun, 11 Mar 2012 10:42:17 -0400
-
 novnc (2012.1~e3+dfsg-2) unstable; urgency=low
 
   * Added a debian/novnc.postinst creating nova user and group.
+  * Added a debian/gbp.conf
 
  -- Thomas Goirand <zigo@debian.org>  Sun, 11 Mar 2012 10:31:31 -0400
 
