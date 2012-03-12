@@ -15,7 +15,8 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, python-novnc, ${python:Depends},
  python (>= 2.6.6-3~),
  nova-common,
- python-numpy
+ python-numpy,
+ adduser
 Description: HTML5 VNC client
  VNC client using HTML5 (WebSockets, Canvas) with encryption (wss://) support.
 
