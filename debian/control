@@ -2,7 +2,8 @@ Source: novnc
 Section: web
 Priority: optional
 Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
-Uploaders: Ghe Rivero <ghe.rivero@stackops.com>
+Uploaders: Ghe Rivero <ghe.rivero@stackops.com>,
+	   Thomas Goirand <zigo@debian.org>
 Build-Depends: debhelper (>= 7.0.50), python-dev (>=2.6.6-3~)
 Standards-Version: 3.9.2
 Homepage: https://github.com/cloudbuilders/noVNC
