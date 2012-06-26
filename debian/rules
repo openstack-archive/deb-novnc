@@ -10,7 +10,5 @@ override_dh_clean:
 	make -C utils clean
 	dh_clean
 
-build:
+override_dh_auto_build-arch:
 	make -C utils rebind.so
-	dh build
-
