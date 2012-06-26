@@ -1,3 +1,15 @@
+novnc (2012.1~e3+dfsg+1-3) unstable; urgency=low
+
+  * Add a build-depend on python-greenlet. There is no actual need for
+    python-greenlet at build time. But on some architectures
+    python-greenlet is not yet available and novnc should not try to build
+    because the resulting package will fail to install. This workaround
+    should not be necessary but the maintainer of python-greenlet has not
+    resolved portability issues in months at this time and we cannot
+    assume it will be resolved quickly. (Closes: #665893).
+
+ -- Loic Dachary (OuoU) <loic@debian.org>  Tue, 26 Jun 2012 11:17:31 +0200
+
 novnc (2012.1~e3+dfsg+1-2) unstable; urgency=low
 
   [ Ghe Rivero ]
