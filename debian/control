@@ -16,7 +16,6 @@ Package: novnc
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, python-novnc, ${python:Depends},
  python (>= 2.6.6-3~),
- nova-common,
  python-numpy,
  adduser
 Description: HTML5 VNC client
