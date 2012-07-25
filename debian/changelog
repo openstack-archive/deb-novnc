@@ -1,3 +1,11 @@
+novnc (2012.1~e3+dfsg+1-5) UNRELEASED; urgency=low
+
+  [ Ghe Rivero]
+  * Removed depend on nova-common
+  * Split config file
+
+ -- Ghe Rivero <ghe@debian.org>  Wed, 25 Jul 2012 14:05:31 +0200
+
 novnc (2012.1~e3+dfsg+1-4) unstable; urgency=low
 
   * replace debian/rules build: target with override_dh_auto_build-arch:
