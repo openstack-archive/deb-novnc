@@ -16,7 +16,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="OpenStack NoVNC proxy"
 NAME=nova-novncproxy
 DAEMON=/usr/bin/nova-novncproxy
-DAEMON_ARGS="--flagfile=/etc/nova/nova.conf --web /usr/share/novnc/"
+DAEMON_ARGS="--web /usr/share/novnc/"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 NOVA_USER=nova
@@ -32,6 +32,10 @@ chown ${NOVA_USER} ${LOCK_DIR}
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 
 . /lib/lsb/init-functions
+
+# Read config file
+[ -f "/etc/novnc/novnc.conf" ] && DAEMON_ARGS=$DAEMON_ARGS" --flagfile=/etc/novnc/novnc.conf"
+[ -f "/etc/nova/nova.conf" ] && DAEMON_ARGS=$DAEMON_ARGS" --flagfile=/etc/nova/nova.conf"
 
 do_start()
 {
