@@ -1,3 +1,8 @@
+= 1:0.4+dfsg+1-5
+ * The debian directory has been removed from the upstream tarball
+
+ -- Mehdi Abaakouk <sileht@sileht.net>, Fri, 21 Sep 2012 17:43:19 +0200
+
 = 2012.1~e3+dfsg
  * The upstream tarball constains four files without source code:
   ./docs/rfbproto-3.7.pdf
