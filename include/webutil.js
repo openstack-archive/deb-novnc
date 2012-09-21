@@ -1,6 +1,6 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2011 Joel Martin
+ * Copyright (C) 2012 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
@@ -8,7 +8,7 @@
 
 "use strict";
 /*jslint bitwise: false, white: false */
-/*global window, document */
+/*global Util, window, document */
 
 // Globals defined here
 var WebUtil = {}, $D;
@@ -17,7 +17,7 @@ var WebUtil = {}, $D;
  * Simple DOM selector by ID
  */
 if (!window.$D) {
-    $D = function (id) {
+    window.$D = function (id) {
         if (document.getElementById) {
             return document.getElementById(id);
         } else if (document.all) {
@@ -42,8 +42,8 @@ WebUtil.init_logging = function() {
          /logging=([A-Za-z0-9\._\-]*)/) ||
          ['', Util._log_level])[1];
     
-    Util.init_logging()
-}
+    Util.init_logging();
+};
 WebUtil.init_logging();
 
 

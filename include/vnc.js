@@ -1,6 +1,6 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2011 Joel Martin
+ * Copyright (C) 2012 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
@@ -30,13 +30,13 @@ function get_INCLUDE_URI() {
 
     extra += start + "util.js" + end;
     extra += start + "webutil.js" + end;
-    extra += start + "logo.js" + end;
     extra += start + "base64.js" + end;
     extra += start + "websock.js" + end;
     extra += start + "des.js" + end;
     extra += start + "input.js" + end;
     extra += start + "display.js" + end;
     extra += start + "rfb.js" + end;
+    extra += start + "jsunzip.js" + end;
 
     document.write(extra);
 }());

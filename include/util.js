@@ -1,6 +1,6 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2011 Joel Martin
+ * Copyright (C) 2012 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
@@ -32,6 +32,45 @@ Array.prototype.push32 = function (num) {
               (num >>  8) & 0xFF,
               (num      ) & 0xFF  );
 };
+
+// IE does not support map (even in IE9)
+//This prototype is provided by the Mozilla foundation and
+//is distributed under the MIT license.
+//http://www.ibiblio.org/pub/Linux/LICENSES/mit.license
+if (!Array.prototype.map)
+{
+  Array.prototype.map = function(fun /*, thisp*/)
+  {
+    var len = this.length;
+    if (typeof fun != "function")
+      throw new TypeError();
+
+    var res = new Array(len);
+    var thisp = arguments[1];
+    for (var i = 0; i < len; i++)
+    {
+      if (i in this)
+        res[i] = fun.call(thisp, this[i], i, this);
+    }
+
+    return res;
+  };
+}
+
+// 
+// requestAnimationFrame shim with setTimeout fallback
+//
+
+window.requestAnimFrame = (function(){
+    return  window.requestAnimationFrame       || 
+            window.webkitRequestAnimationFrame || 
+            window.mozRequestAnimationFrame    || 
+            window.oRequestAnimationFrame      || 
+            window.msRequestAnimationFrame     || 
+            function(callback){
+                window.setTimeout(callback, 1000 / 60);
+            };
+})();
 
 /* 
  * ------------------------------------------------------
@@ -107,6 +146,8 @@ Util.conf_default = function(cfg, api, defaults, v, mode, type, defval, desc) {
             }
         } else if (type in {'integer':1, 'int':1}) {
             val = parseInt(val, 10);
+        } else if (type === 'str') {
+            val = String(val);
         } else if (type === 'func') {
             if (!val) {
                 val = function () {};
@@ -159,7 +200,7 @@ Util.conf_defaults = function(cfg, api, defaults, arr) {
         Util.conf_default(cfg, api, defaults, arr[i][0], arr[i][1],
                 arr[i][2], arr[i][3], arr[i][4]);
     }
-}
+};
 
 
 /*
@@ -240,8 +281,11 @@ Util.stopEvent = function(e) {
 Util.Features = {xpath: !!(document.evaluate), air: !!(window.runtime), query: !!(document.querySelector)};
 
 Util.Engine = {
-    'presto': (function() {
-            return (!window.opera) ? false : ((arguments.callee.caller) ? 960 : ((document.getElementsByClassName) ? 950 : 925)); }()),
+    // Version detection break in Opera 11.60 (errors on arguments.callee.caller reference)
+    //'presto': (function() {
+    //         return (!window.opera) ? false : ((arguments.callee.caller) ? 960 : ((document.getElementsByClassName) ? 950 : 925)); }()),
+    'presto': (function() { return (!window.opera) ? false : true; }()),
+
     'trident': (function() {
             return (!window.ActiveXObject) ? false : ((window.XMLHttpRequest) ? ((document.querySelectorAll) ? 6 : 5) : 4); }()),
     'webkit': (function() {
