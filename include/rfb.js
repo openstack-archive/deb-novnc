@@ -1,13 +1,16 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2011 Joel Martin
+ * Copyright (C) 2012 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
+ *
+ * TIGHT decoder portion:
+ * (c) 2012 Michael Tinglof, Joe Balaz, Les Piech (Mercuri.ca)
  */
 
 /*jslint white: false, browser: true, bitwise: false, plusplus: false */
-/*global window, Util, Display, Keyboard, Mouse, Websock, Websock_native, Base64, DES, noVNC_logo */
+/*global window, Util, Display, Keyboard, Mouse, Websock, Websock_native, Base64, DES */
 
 
 function RFB(defaults) {
@@ -23,7 +26,7 @@ var that           = {},  // Public API methods
     pixelFormat, clientEncodings, fbUpdateRequest, fbUpdateRequests,
     keyEvent, pointerEvent, clientCutText,
 
-    extract_data_uri, scan_tight_imgQ,
+    getTightCLength, extract_data_uri,
     keyPress, mouseButton, mouseMove,
 
     checkEvents,  // Overridable for testing
@@ -35,7 +38,7 @@ var that           = {},  // Public API methods
     rfb_host       = '',
     rfb_port       = 5900,
     rfb_password   = '',
-    rfb_uri        = '',
+    rfb_path       = '',
 
     rfb_state      = 'disconnected',
     rfb_version    = 0,
@@ -46,6 +49,7 @@ var that           = {},  // Public API methods
     // In preference order
     encodings      = [
         ['COPYRECT',         0x01 ],
+        ['TIGHT',            0x07 ],
         ['TIGHT_PNG',        -260 ],
         ['HEXTILE',          0x05 ],
         ['RRE',              0x02 ],
@@ -54,10 +58,12 @@ var that           = {},  // Public API methods
         ['Cursor',           -239 ],
 
         // Psuedo-encoding settings
-        ['JPEG_quality_lo',   -32 ],
+        //['JPEG_quality_lo',   -32 ],
+        ['JPEG_quality_med',    -26 ],
         //['JPEG_quality_hi',   -23 ],
-        ['compress_lo',      -255 ]
-        //['compress_hi',      -247 ]
+        //['compress_lo',      -255 ],
+        ['compress_hi',        -247 ],
+        ['last_rect',          -224 ]
         ],
 
     encHandlers    = {},
@@ -87,7 +93,7 @@ var that           = {},  // Public API methods
         encoding       : 0,
         subencoding    : -1,
         background     : null,
-        imgQ           : []   // TIGHT_PNG image queue
+        zlibs          : []   // TIGHT zlib streams
     },
 
     fb_Bpp         = 4,
@@ -96,7 +102,6 @@ var that           = {},  // Public API methods
     fb_height      = 0,
     fb_name        = "",
 
-    scan_imgQ_rate = 40, // 25 times per second or so
     last_req_time  = 0,
     rre_chunk_sz   = 100,
 
@@ -109,7 +114,8 @@ var that           = {},  // Public API methods
 
         fbu_rt_start   : 0,
         fbu_rt_total   : 0,
-        fbu_rt_cnt     : 0
+        fbu_rt_cnt     : 0,
+        pixels         : 0
     },
 
     test_mode        = false,
@@ -118,7 +124,9 @@ var that           = {},  // Public API methods
 
     /* Mouse state */
     mouse_buttonMask = 0,
-    mouse_arr        = [];
+    mouse_arr        = [],
+    viewportDragging = false,
+    viewportDragPos  = {};
 
 // Configuration attributes
 Util.conf_defaults(conf, that, defaults, [
@@ -129,9 +137,15 @@ Util.conf_defaults(conf, that, defaults, [
     ['true_color',         'rw', 'bool', true,  'Request true color pixel data'],
     ['local_cursor',       'rw', 'bool', false, 'Request locally rendered cursor'],
     ['shared',             'rw', 'bool', true,  'Request shared mode'],
+    ['view_only',          'rw', 'bool', false, 'Disable client mouse/keyboard'],
 
     ['connectTimeout',     'rw', 'int', def_con_timeout, 'Time (s) to wait for connection'],
     ['disconnectTimeout',  'rw', 'int', 3,    'Time (s) to wait for disconnection'],
+
+    // UltraVNC repeater ID to connect to
+    ['repeaterID',         'rw', 'str',  '',    'RepeaterID to connect to'],
+
+    ['viewportDrag',       'rw', 'bool', false, 'Move the viewport on mouse drags'],
 
     ['check_rate',         'rw', 'int', 217,  'Timing (ms) of send/receive check'],
     ['fbu_req_rate',       'rw', 'int', 1413, 'Timing (ms) of frameBufferUpdate requests'],
@@ -211,10 +225,6 @@ function constructor() {
 
     rmode = display.get_render_mode();
 
-    if (typeof noVNC_logo !== 'undefined') {
-        display.set_logo(noVNC_logo);
-    }
-
     ws = new Websock();
     ws.on('message', handle_message);
     ws.on('open', function() {
@@ -224,19 +234,29 @@ function constructor() {
             fail("Got unexpected WebSockets connection");
         }
     });
-    ws.on('close', function() {
+    ws.on('close', function(e) {
+        Util.Warn("WebSocket on-close event");
+        var msg = "";
+        if (e.code) {
+            msg = " (code: " + e.code;
+            if (e.reason) {
+                msg += ", reason: " + e.reason;
+            }
+            msg += ")";
+        }
         if (rfb_state === 'disconnect') {
-            updateState('disconnected', 'VNC disconnected');
+            updateState('disconnected', 'VNC disconnected' + msg);
         } else if (rfb_state === 'ProtocolVersion') {
-            fail('Failed to connect to server');
+            fail('Failed to connect to server' + msg);
         } else if (rfb_state in {'failed':1, 'disconnected':1}) {
-            Util.Error("Received onclose while disconnected");
+            Util.Error("Received onclose while disconnected" + msg);
         } else  {
-            fail('Server disconnected');
+            fail('Server disconnected' + msg);
         }
     });
     ws.on('error', function(e) {
-        fail("WebSock error: " + e);
+        Util.Warn("WebSocket on-error event");
+        //fail("WebSock reported an error");
     });
 
 
@@ -266,14 +286,18 @@ function constructor() {
 
 function connect() {
     Util.Debug(">> RFB.connect");
-
-    var uri = "";
-    if (conf.encrypt) {
-        uri = "wss://";
+    var uri;
+    
+    if (typeof UsingSocketIO !== "undefined") {
+        uri = "http://" + rfb_host + ":" + rfb_port + "/" + rfb_path;
     } else {
-        uri = "ws://";
+        if (conf.encrypt) {
+            uri = "wss://";
+        } else {
+            uri = "ws://";
+        }
+        uri += rfb_host + ":" + rfb_port + "/" + rfb_path;
     }
-    uri += rfb_host + ":" + rfb_port + "/" + rfb_uri;
     Util.Info("connecting to " + uri);
     ws.open(uri);
 
@@ -291,13 +315,19 @@ init_vars = function() {
     FBU.subrects     = 0;  // RRE and HEXTILE
     FBU.lines        = 0;  // RAW
     FBU.tiles        = 0;  // HEXTILE
-    FBU.imgQ         = []; // TIGHT_PNG image queue
+    FBU.zlibs        = []; // TIGHT zlib encoders
     mouse_buttonMask = 0;
     mouse_arr        = [];
 
     // Clear the per connection encoding stats
     for (i=0; i < encodings.length; i+=1) {
         encStats[encodings[i][1]][0] = 0;
+    }
+    
+    for (i=0; i < 4; i++) {
+        //FBU.zlibs[i] = new InflateStream();
+        FBU.zlibs[i] = new TINF();
+        FBU.zlibs[i].init();
     }
 };
 
@@ -396,15 +426,15 @@ updateState = function(state, statusMsg) {
         func = Util.Warn;
     }
 
+    cmsg = typeof(statusMsg) !== 'undefined' ? (" Msg: " + statusMsg) : "";
+    func("New state '" + state + "', was '" + oldstate + "'." + cmsg);
+
     if ((oldstate === 'failed') && (state === 'disconnected')) {
-        // Do disconnect action, but stay in failed state.
+        // Do disconnect action, but stay in failed state
         rfb_state = 'failed';
     } else {
         rfb_state = state;
     }
-
-    cmsg = typeof(statusMsg) !== 'undefined' ? (" Msg: " + statusMsg) : "";
-    func("New state '" + rfb_state + "', was '" + oldstate + "'." + cmsg);
 
     if (connTimer && (rfb_state !== 'connect')) {
         Util.Debug("Clearing connect timer");
@@ -551,7 +581,7 @@ function flushClient() {
 // overridable for testing
 checkEvents = function() {
     var now;
-    if (rfb_state === 'normal') {
+    if (rfb_state === 'normal' && !viewportDragging) {
         if (! flushClient()) {
             now = new Date().getTime();
             if (now > last_req_time + conf.fbu_req_rate) {
@@ -565,6 +595,9 @@ checkEvents = function() {
 
 keyPress = function(keysym, down) {
     var arr;
+
+    if (conf.view_only) { return; } // View only, skip keyboard events
+
     arr = keyEvent(keysym, down);
     arr = arr.concat(fbUpdateRequests());
     ws.send(arr);
@@ -576,13 +609,48 @@ mouseButton = function(x, y, down, bmask) {
     } else {
         mouse_buttonMask ^= bmask;
     }
-    mouse_arr = mouse_arr.concat( pointerEvent(x, y) );
+
+    if (conf.viewportDrag) {
+        if (down && !viewportDragging) {
+            viewportDragging = true;
+            viewportDragPos = {'x': x, 'y': y};
+
+            // Skip sending mouse events
+            return;
+        } else {
+            viewportDragging = false;
+            ws.send(fbUpdateRequests()); // Force immediate redraw
+        }
+    }
+
+    if (conf.view_only) { return; } // View only, skip mouse events
+
+    mouse_arr = mouse_arr.concat(
+            pointerEvent(display.absX(x), display.absY(y)) );
     flushClient();
 };
 
 mouseMove = function(x, y) {
     //Util.Debug('>> mouseMove ' + x + "," + y);
-    mouse_arr = mouse_arr.concat( pointerEvent(x, y) );
+    var deltaX, deltaY;
+
+    if (viewportDragging) {
+        //deltaX = x - viewportDragPos.x; // drag viewport
+        deltaX = viewportDragPos.x - x; // drag frame buffer
+        //deltaY = y - viewportDragPos.y; // drag viewport
+        deltaY = viewportDragPos.y - y; // drag frame buffer
+        viewportDragPos = {'x': x, 'y': y};
+
+        display.viewportChange(deltaX, deltaY);
+
+        // Skip sending mouse events
+        return;
+    }
+
+    if (conf.view_only) { return; } // View only, skip mouse events
+
+    mouse_arr = mouse_arr.concat(
+            pointerEvent(display.absX(x), display.absY(y)) );
 };
 
 
@@ -594,10 +662,10 @@ mouseMove = function(x, y) {
 init_msg = function() {
     //Util.Debug(">> init_msg [rfb_state '" + rfb_state + "']");
 
-    var strlen, reason, length, sversion, cversion,
+    var strlen, reason, length, sversion, cversion, repeaterID,
         i, types, num_types, challenge, response, bpp, depth,
         big_endian, red_max, green_max, blue_max, red_shift,
-        green_shift, blue_shift, true_color, name_length;
+        green_shift, blue_shift, true_color, name_length, is_repeater;
 
     //Util.Debug("ws.rQ (" + ws.rQlen() + ") " + ws.rQslice(0));
     switch (rfb_state) {
@@ -608,13 +676,26 @@ init_msg = function() {
         }
         sversion = ws.rQshiftStr(12).substr(4,7);
         Util.Info("Server ProtocolVersion: " + sversion);
+        is_repeater = 0;
         switch (sversion) {
+            case "000.000": is_repeater = 1; break; // UltraVNC repeater
             case "003.003": rfb_version = 3.3; break;
             case "003.006": rfb_version = 3.3; break;  // UltraVNC
+            case "003.889": rfb_version = 3.3; break;  // Apple Remote Desktop
             case "003.007": rfb_version = 3.7; break;
             case "003.008": rfb_version = 3.8; break;
+            case "004.000": rfb_version = 3.8; break;  // Intel AMT KVM
+            case "004.001": rfb_version = 3.8; break;  // RealVNC 4.6
             default:
                 return fail("Invalid server version " + sversion);
+        }
+        if (is_repeater) { 
+            repeaterID = conf.repeaterID;
+            while (repeaterID.length < 250) {
+                repeaterID += "\0";
+            }
+            ws.send_string(repeaterID);
+            break;
         }
         if (rfb_version > rfb_max_version) { 
             rfb_version = rfb_max_version;
@@ -776,13 +857,28 @@ init_msg = function() {
                   ", green_shift: " + green_shift +
                   ", blue_shift: " + blue_shift);
 
+        if (big_endian !== 0) {
+            Util.Warn("Server native endian is not little endian");
+        }
+        if (red_shift !== 16) {
+            Util.Warn("Server native red-shift is not 16");
+        }
+        if (blue_shift !== 0) {
+            Util.Warn("Server native blue-shift is not 0");
+        }
+
         /* Connection name/title */
         name_length   = ws.rQshift32();
         fb_name = ws.rQshiftStr(name_length);
+        
+        if (conf.true_color && fb_name === "Intel(r) AMT KVM")
+        {
+            Util.Warn("Intel AMT KVM only support 8/16 bit depths. Disabling true color");
+            conf.true_color = false;
+        }
 
         display.set_true_color(conf.true_color);
         display.resize(fb_width, fb_height);
-        display.viewportChange(0, 0, fb_width, fb_height);
         keyboard.grab();
         mouse.grab();
 
@@ -798,11 +894,11 @@ init_msg = function() {
         response = response.concat(clientEncodings());
         response = response.concat(fbUpdateRequests());
         timing.fbu_rt_start = (new Date()).getTime();
+        timing.pixels = 0;
         ws.send(response);
         
         /* Start pushing/polling */
         setTimeout(checkEvents, conf.check_rate);
-        setTimeout(scan_tight_imgQ, scan_imgQ_rate);
 
         if (conf.encrypt) {
             updateState('normal', "Connected (encrypted) to: " + fb_name);
@@ -836,6 +932,8 @@ normal_msg = function() {
         ws.rQshift8();  // Padding
         first_colour = ws.rQshift16(); // First colour
         num_colours = ws.rQshift16();
+        if (ws.rQwait("SetColourMapEntries", num_colours*6, 6)) { return false; }
+        
         for (c=0; c < num_colours; c+=1) { 
             red = ws.rQshift16();
             //Util.Debug("red before: " + red);
@@ -843,7 +941,7 @@ normal_msg = function() {
             //Util.Debug("red after: " + red);
             green = parseInt(ws.rQshift16() / 256, 10);
             blue = parseInt(ws.rQshift16() / 256, 10);
-            display.set_colourMap([red, green, blue], first_colour + c);
+            display.set_colourMap([blue, green, red], first_colour + c);
         }
         Util.Debug("colourMap: " + display.get_colourMap());
         Util.Info("Registered " + num_colours + " colourMap entries");
@@ -944,9 +1042,10 @@ framebufferUpdate = function() {
         if (ret) {
             encStats[FBU.encoding][0] += 1;
             encStats[FBU.encoding][1] += 1;
+            timing.pixels += FBU.width * FBU.height;
         }
 
-        if (FBU.rects === 0) {
+        if (timing.pixels >= (fb_width * fb_height)) {
             if (((FBU.width === fb_width) &&
                         (FBU.height === fb_height)) ||
                     (timing.fbu_rt_start > 0)) {
@@ -1024,9 +1123,14 @@ encHandlers.COPYRECT = function display_copy_rect() {
     var old_x, old_y;
 
     if (ws.rQwait("COPYRECT", 4)) { return false; }
-    old_x = ws.rQshift16();
-    old_y = ws.rQshift16();
-    display.copyImage(old_x, old_y, FBU.x, FBU.y, FBU.width, FBU.height);
+    display.renderQ_push({
+            'type': 'copy',
+            'old_x': ws.rQshift16(),
+            'old_y': ws.rQshift16(),
+            'x': FBU.x,
+            'y': FBU.y,
+            'width': FBU.width,
+            'height': FBU.height});
     FBU.rects -= 1;
     FBU.bytes = 0;
     return true;
@@ -1067,7 +1171,7 @@ encHandlers.RRE = function display_rre() {
 
 encHandlers.HEXTILE = function display_hextile() {
     //Util.Debug(">> display_hextile");
-    var subencoding, subrects, tile, color, cur_tile,
+    var subencoding, subrects, color, cur_tile,
         tile_x, x, w, tile_y, y, h, xy, s, sx, sy, wh, sw, sh,
         rQ = ws.get_rQ(), rQi = ws.get_rQi(); 
 
@@ -1156,7 +1260,7 @@ encHandlers.HEXTILE = function display_hextile() {
                 rQi += fb_Bpp;
             }
 
-            tile = display.getTile(x, y, w, h, FBU.background);
+            display.startTile(x, y, w, h, FBU.background);
             if (FBU.subencoding & 0x08) { // AnySubrects
                 subrects = rQ[rQi];
                 rQi += 1;
@@ -1177,10 +1281,10 @@ encHandlers.HEXTILE = function display_hextile() {
                     sw = (wh >> 4)   + 1;
                     sh = (wh & 0x0f) + 1;
 
-                    display.setSubTile(tile, sx, sy, sw, sh, color);
+                    display.subTile(sx, sy, sw, sh, color);
                 }
             }
-            display.putTile(tile);
+            display.finishTile();
         }
         ws.set_rQi(rQi);
         FBU.lastsubencoding = FBU.subencoding;
@@ -1197,42 +1301,197 @@ encHandlers.HEXTILE = function display_hextile() {
 };
 
 
-encHandlers.TIGHT_PNG = function display_tight_png() {
-    //Util.Debug(">> display_tight_png");
-    var ctl, cmode, clength, getCLength, color, img;
-    //Util.Debug("   FBU.rects: " + FBU.rects);
-    //Util.Debug("   starting ws.rQslice(0,20): " + ws.rQslice(0,20) + " (" + ws.rQlen() + ")");
+// Get 'compact length' header and data size
+getTightCLength = function (arr) {
+    var header = 1, data = 0;
+    data += arr[0] & 0x7f;
+    if (arr[0] & 0x80) {
+        header += 1;
+        data += (arr[1] & 0x7f) << 7;
+        if (arr[1] & 0x80) {
+            header += 1;
+            data += arr[2] << 14;
+        }
+    }
+    return [header, data];
+};
+
+function display_tight(isTightPNG) {
+    //Util.Debug(">> display_tight");
+
+    if (fb_depth === 1) {
+        fail("Tight protocol handler only implements true color mode");
+    }
+
+    var ctl, cmode, clength, color, img, data;
+    var filterId = -1, resetStreams = 0, streamId = -1;
+    var rQ = ws.get_rQ(), rQi = ws.get_rQi(); 
 
     FBU.bytes = 1; // compression-control byte
     if (ws.rQwait("TIGHT compression-control", FBU.bytes)) { return false; }
 
-    // Get 'compact length' header and data size
-    getCLength = function (arr) {
-        var header = 1, data = 0;
-        data += arr[0] & 0x7f;
-        if (arr[0] & 0x80) {
-            header += 1;
-            data += (arr[1] & 0x7f) << 7;
-            if (arr[1] & 0x80) {
-                header += 1;
-                data += arr[2] << 14;
+    var checksum = function(data) {
+        var sum=0, i;
+        for (i=0; i<data.length;i++) {
+            sum += data[i];
+            if (sum > 65536) sum -= 65536;
+        }
+        return sum;
+    }
+
+    var decompress = function(data) {
+        for (var i=0; i<4; i++) {
+            if ((resetStreams >> i) & 1) {
+                FBU.zlibs[i].reset();
+                Util.Info("Reset zlib stream " + i);
             }
         }
-        return [header, data];
-    };
+        var uncompressed = FBU.zlibs[streamId].uncompress(data, 0);
+        if (uncompressed.status !== 0) {
+            Util.Error("Invalid data in zlib stream");
+        }
+        //Util.Warn("Decompressed " + data.length + " to " +
+        //    uncompressed.data.length + " checksums " +
+        //    checksum(data) + ":" + checksum(uncompressed.data));
+
+        return uncompressed.data;
+    }
+
+    var handlePalette = function() {
+        var numColors = rQ[rQi + 2] + 1;
+        var paletteSize = numColors * fb_depth; 
+        FBU.bytes += paletteSize;
+        if (ws.rQwait("TIGHT palette " + cmode, FBU.bytes)) { return false; }
+
+        var bpp = (numColors <= 2) ? 1 : 8;
+        var rowSize = Math.floor((FBU.width * bpp + 7) / 8);
+        var raw = false;
+        if (rowSize * FBU.height < 12) {
+            raw = true;
+            clength = [0, rowSize * FBU.height];
+        } else {
+            clength = getTightCLength(ws.rQslice(3 + paletteSize,
+                                                 3 + paletteSize + 3));
+        }
+        FBU.bytes += clength[0] + clength[1];
+        if (ws.rQwait("TIGHT " + cmode, FBU.bytes)) { return false; }
+
+        // Shift ctl, filter id, num colors, palette entries, and clength off
+        ws.rQshiftBytes(3); 
+        var palette = ws.rQshiftBytes(paletteSize);
+        ws.rQshiftBytes(clength[0]);
+
+        if (raw) {
+            data = ws.rQshiftBytes(clength[1]);
+        } else {
+            data = decompress(ws.rQshiftBytes(clength[1]));
+        }
+
+        // Convert indexed (palette based) image data to RGB
+        // TODO: reduce number of calculations inside loop
+        var dest = [];
+        var x, y, b, w, w1, dp, sp;
+        if (numColors === 2) {
+            w = Math.floor((FBU.width + 7) / 8);
+            w1 = Math.floor(FBU.width / 8);
+            for (y = 0; y < FBU.height; y++) {
+                for (x = 0; x < w1; x++) {
+                    for (b = 7; b >= 0; b--) {
+                        dp = (y*FBU.width + x*8 + 7-b) * 3;
+                        sp = (data[y*w + x] >> b & 1) * 3;
+                        dest[dp  ] = palette[sp  ];
+                        dest[dp+1] = palette[sp+1];
+                        dest[dp+2] = palette[sp+2];
+                    }
+                }
+                for (b = 7; b >= 8 - FBU.width % 8; b--) {
+                    dp = (y*FBU.width + x*8 + 7-b) * 3;
+                    sp = (data[y*w + x] >> b & 1) * 3;
+                    dest[dp  ] = palette[sp  ];
+                    dest[dp+1] = palette[sp+1];
+                    dest[dp+2] = palette[sp+2];
+                }
+            }
+        } else {
+            for (y = 0; y < FBU.height; y++) {
+                for (x = 0; x < FBU.width; x++) {
+                    dp = (y*FBU.width + x) * 3;
+                    sp = data[y*FBU.width + x] * 3;
+                    dest[dp  ] = palette[sp  ];
+                    dest[dp+1] = palette[sp+1];
+                    dest[dp+2] = palette[sp+2];
+                }
+            }
+        }
+
+        display.renderQ_push({
+                'type': 'blitRgb',
+                'data': dest,
+                'x': FBU.x,
+                'y': FBU.y,
+                'width': FBU.width,
+                'height': FBU.height});
+        return true;
+    }
+
+    var handleCopy = function() {
+        var raw = false;
+        var uncompressedSize = FBU.width * FBU.height * fb_depth;
+        if (uncompressedSize < 12) {
+            raw = true;
+            clength = [0, uncompressedSize];
+        } else {
+            clength = getTightCLength(ws.rQslice(1, 4));
+        }
+        FBU.bytes = 1 + clength[0] + clength[1];
+        if (ws.rQwait("TIGHT " + cmode, FBU.bytes)) { return false; }
+
+        // Shift ctl, clength off
+        ws.rQshiftBytes(1 + clength[0]);
+
+        if (raw) {
+            data = ws.rQshiftBytes(clength[1]);
+        } else {
+            data = decompress(ws.rQshiftBytes(clength[1]));
+        }
+
+        display.renderQ_push({
+                'type': 'blitRgb',
+                'data': data,
+                'x': FBU.x,
+                'y': FBU.y,
+                'width': FBU.width,
+                'height': FBU.height});
+        return true;
+    }
 
     ctl = ws.rQpeek8();
-    switch (ctl >> 4) {
-        case 0x08: cmode = "fill"; break;
-        case 0x09: cmode = "jpeg"; break;
-        case 0x0A: cmode = "png";  break;
-        default:   throw("Illegal basic compression received, ctl: " + ctl);
+
+    // Keep tight reset bits
+    resetStreams = ctl & 0xF;
+
+    // Figure out filter
+    ctl = ctl >> 4; 
+    streamId = ctl & 0x3;
+
+    if (ctl === 0x08)      cmode = "fill";
+    else if (ctl === 0x09) cmode = "jpeg";
+    else if (ctl === 0x0A) cmode = "png";
+    else if (ctl & 0x04)   cmode = "filter";
+    else if (ctl < 0x04)   cmode = "copy";
+    else return fail("Illegal tight compression received, ctl: " + ctl);
+
+    if (isTightPNG && (cmode === "filter" || cmode === "copy")) {
+        return fail("filter/copy received in tightPNG mode");
     }
+
     switch (cmode) {
         // fill uses fb_depth because TPIXELs drop the padding byte
-        case "fill": FBU.bytes += fb_depth; break; // TPIXEL
-        case "jpeg": FBU.bytes += 3;            break; // max clength
-        case "png":  FBU.bytes += 3;            break; // max clength
+        case "fill":   FBU.bytes += fb_depth; break; // TPIXEL
+        case "jpeg":   FBU.bytes += 3;        break; // max clength
+        case "png":    FBU.bytes += 3;        break; // max clength
+        case "filter": FBU.bytes += 2;        break; // filter id + num colors if palette
+        case "copy":                          break;
     }
 
     if (ws.rQwait("TIGHT " + cmode, FBU.bytes)) { return false; }
@@ -1245,42 +1504,55 @@ encHandlers.TIGHT_PNG = function display_tight_png() {
     case "fill":
         ws.rQshift8(); // shift off ctl
         color = ws.rQshiftBytes(fb_depth);
-        FBU.imgQ.push({
+        display.renderQ_push({
                 'type': 'fill',
-                'img': {'complete': true},
                 'x': FBU.x,
                 'y': FBU.y,
                 'width': FBU.width,
                 'height': FBU.height,
-                'color': color});
+                'color': [color[2], color[1], color[0]] });
         break;
-    case "jpeg":
     case "png":
-        clength = getCLength(ws.rQslice(1, 4));
+    case "jpeg":
+        clength = getTightCLength(ws.rQslice(1, 4));
         FBU.bytes = 1 + clength[0] + clength[1]; // ctl + clength size + jpeg-data
         if (ws.rQwait("TIGHT " + cmode, FBU.bytes)) { return false; }
 
         // We have everything, render it
-        //Util.Debug("   png, ws.rQlen(): " + ws.rQlen() + ", clength[0]: " + clength[0] + ", clength[1]: " + clength[1]);
+        //Util.Debug("   jpeg, ws.rQlen(): " + ws.rQlen() + ", clength[0]: " +
+        //           clength[0] + ", clength[1]: " + clength[1]);
         ws.rQshiftBytes(1 + clength[0]); // shift off ctl + compact length
         img = new Image();
-        //img.onload = scan_tight_imgQ;
-        FBU.imgQ.push({
+        img.src = "data:image/" + cmode +
+            extract_data_uri(ws.rQshiftBytes(clength[1]));
+        display.renderQ_push({
                 'type': 'img',
                 'img': img,
                 'x': FBU.x,
                 'y': FBU.y});
-        img.src = "data:image/" + cmode +
-            extract_data_uri(ws.rQshiftBytes(clength[1]));
         img = null;
         break;
+    case "filter":
+        filterId = rQ[rQi + 1];
+        if (filterId === 1) {
+            if (!handlePalette()) { return false; }
+        } else {
+            // Filter 0, Copy could be valid here, but servers don't send it as an explicit filter
+            // Filter 2, Gradient is valid but not used if jpeg is enabled
+            throw("Unsupported tight subencoding received, filter: " + filterId);
+        }
+        break;
+    case "copy":
+        if (!handleCopy()) { return false; }
+        break;
     }
+
     FBU.bytes = 0;
     FBU.rects -= 1;
     //Util.Debug("   ending ws.rQslice(0,20): " + ws.rQslice(0,20) + " (" + ws.rQlen() + ")");
     //Util.Debug("<< display_tight_png");
     return true;
-};
+}
 
 extract_data_uri = function(arr) {
     //var i, stra = [];
@@ -1291,21 +1563,14 @@ extract_data_uri = function(arr) {
     return ";base64," + Base64.encode(arr);
 };
 
-scan_tight_imgQ = function() {
-    var data, imgQ, ctx;
-    ctx = display.get_context();
-    if (rfb_state === 'normal') {
-        imgQ = FBU.imgQ;
-        while ((imgQ.length > 0) && (imgQ[0].img.complete)) {
-            data = imgQ.shift();
-            if (data['type'] === 'fill') {
-                display.fillRect(data.x, data.y, data.width, data.height, data.color);
-            } else {
-                ctx.drawImage(data.img, data.x, data.y);
-            }
-        }
-        setTimeout(scan_tight_imgQ, scan_imgQ_rate);
-    }
+encHandlers.TIGHT = function () { return display_tight(false); };
+encHandlers.TIGHT_PNG = function () { return display_tight(true); };
+
+encHandlers.last_rect = function last_rect() {
+    //Util.Debug(">> last_rect");
+    FBU.rects = 0;
+    //Util.Debug("<< last_rect");
+    return true;
 };
 
 encHandlers.DesktopSize = function set_desktopsize() {
@@ -1313,7 +1578,6 @@ encHandlers.DesktopSize = function set_desktopsize() {
     fb_width = FBU.width;
     fb_height = FBU.height;
     display.resize(fb_width, fb_height);
-    display.viewportChange(0, 0, fb_width, fb_height);
     timing.fbu_rt_start = (new Date()).getTime();
     // Send a new non-incremental request
     ws.send(fbUpdateRequests());
@@ -1327,7 +1591,7 @@ encHandlers.DesktopSize = function set_desktopsize() {
 
 encHandlers.Cursor = function set_cursor() {
     var x, y, w, h, pixelslength, masklength;
-    //Util.Debug(">> set_cursor");
+    Util.Debug(">> set_cursor");
     x = FBU.x;  // hotspot-x
     y = FBU.y;  // hotspot-y
     w = FBU.width;
@@ -1348,7 +1612,7 @@ encHandlers.Cursor = function set_cursor() {
     FBU.bytes = 0;
     FBU.rects -= 1;
 
-    //Util.Debug("<< set_cursor");
+    Util.Debug("<< set_cursor");
     return true;
 };
 
@@ -1380,9 +1644,9 @@ pixelFormat = function() {
     arr.push16(255);  // red-max
     arr.push16(255);  // green-max
     arr.push16(255);  // blue-max
-    arr.push8(0);     // red-shift
+    arr.push8(16);    // red-shift
     arr.push8(8);     // green-shift
-    arr.push8(16);    // blue-shift
+    arr.push8(0);     // blue-shift
 
     arr.push8(0);     // padding
     arr.push8(0);     // padding
@@ -1418,10 +1682,10 @@ clientEncodings = function() {
 
 fbUpdateRequest = function(incremental, x, y, xw, yw) {
     //Util.Debug(">> fbUpdateRequest");
-    if (typeof(x) !== "undefined") { x = 0; }
-    if (typeof(y) !== "undefined") { y = 0; }
-    if (typeof(xw) !== "undefined") { xw = fb_width; }
-    if (typeof(yw) !== "undefined") { yw = fb_height; }
+    if (typeof(x) === "undefined") { x = 0; }
+    if (typeof(y) === "undefined") { y = 0; }
+    if (typeof(xw) === "undefined") { xw = fb_width; }
+    if (typeof(yw) === "undefined") { yw = fb_height; }
     var arr;
     arr = [3];  // msg-type
     arr.push8(incremental);
@@ -1498,13 +1762,13 @@ clientCutText = function(text) {
 // Public API interface functions
 //
 
-that.connect = function(host, port, password, uri) {
+that.connect = function(host, port, password, path) {
     //Util.Debug(">> connect");
 
     rfb_host       = host;
     rfb_port       = port;
     rfb_password   = (password !== undefined)   ? password : "";
-    rfb_uri        = (uri !== undefined) ? uri : "";
+    rfb_path       = (path !== undefined) ? path : "";
 
     if ((!rfb_host) || (!rfb_port)) {
         return fail("Must set host and port");
@@ -1528,7 +1792,7 @@ that.sendPassword = function(passwd) {
 };
 
 that.sendCtrlAltDel = function() {
-    if (rfb_state !== "normal") { return false; }
+    if (rfb_state !== "normal" || conf.view_only) { return false; }
     Util.Info("Sending Ctrl-Alt-Del");
     var arr = [];
     arr = arr.concat(keyEvent(0xFFE3, 1)); // Control
@@ -1544,7 +1808,7 @@ that.sendCtrlAltDel = function() {
 // Send a key press. If 'down' is not specified then send a down key
 // followed by an up key.
 that.sendKey = function(code, down) {
-    if (rfb_state !== "normal") { return false; }
+    if (rfb_state !== "normal" || conf.view_only) { return false; }
     var arr = [];
     if (typeof down !== 'undefined') {
         Util.Info("Sending key code (" + (down ? "down" : "up") + "): " + code);

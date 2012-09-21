@@ -412,6 +412,26 @@ function onKeyUp(e) {
     return false;
 }
 
+function allKeysUp() {
+    Util.Debug(">> Keyboard.allKeysUp");
+    if (keyDownList.length > 0) {
+        Util.Info("Releasing pressed/down keys");
+    }
+    var i, keysym, fevt = null;
+    for (i = keyDownList.length-1; i >= 0; i--) {
+        fevt = keyDownList.splice(i, 1)[0];
+        keysym = fevt.keysym;
+        if (conf.onKeyPress && (keysym > 0)) {
+            Util.Debug("allKeysUp, keysym: " + keysym +
+                    " (keyCode: " + fevt.keyCode +
+                    ", which: " + fevt.which + ")");
+            conf.onKeyPress(keysym, 0, fevt);
+        }
+    }
+    Util.Debug("<< Keyboard.allKeysUp");
+    return;
+}
+
 //
 // Public API interface functions
 //
@@ -424,6 +444,9 @@ that.grab = function() {
     Util.addEvent(c, 'keyup', onKeyUp);
     Util.addEvent(c, 'keypress', onKeyPress);
 
+    // Release (key up) if window loses focus
+    Util.addEvent(window, 'blur', allKeysUp);
+
     //Util.Debug("<< Keyboard.grab");
 };
 
@@ -434,6 +457,10 @@ that.ungrab = function() {
     Util.removeEvent(c, 'keydown', onKeyDown);
     Util.removeEvent(c, 'keyup', onKeyUp);
     Util.removeEvent(c, 'keypress', onKeyPress);
+    Util.removeEvent(window, 'blur', allKeysUp);
+
+    // Release (key up) all keys that are in a down state
+    allKeysUp();
 
     //Util.Debug(">> Keyboard.ungrab");
 };
@@ -1140,14 +1167,14 @@ unicodeTable = {
     0x21D4 : 0x08cd,
     0x21D2 : 0x08ce,
     0x2261 : 0x08cf,
-    0x221A : 0x08d6,
+    //0x221A : 0x08d6,
     0x2282 : 0x08da,
     0x2283 : 0x08db,
     0x2229 : 0x08dc,
     0x222A : 0x08dd,
     0x2227 : 0x08de,
     0x2228 : 0x08df,
-    0x2202 : 0x08ef,
+    //0x2202 : 0x08ef,
     0x0192 : 0x08f6,
     0x2190 : 0x08fb,
     0x2191 : 0x08fc,
@@ -1482,7 +1509,7 @@ unicodeTable = {
     0x012D : 0x100012d,
     0x01B6 : 0x10001b6,
     0x01E7 : 0x10001e7,
-    0x01D2 : 0x10001d2,
+    //0x01D2 : 0x10001d2,
     0x0275 : 0x1000275,
     0x018F : 0x100018f,
     0x0259 : 0x1000259,
@@ -1852,7 +1879,7 @@ unicodeTable = {
     0x28e0 : 0x10028e0,
     0x28e1 : 0x10028e1,
     0x28e2 : 0x10028e2,
-    0x28e3 : 0x10028e3,
+    0x28e3 : 0x10028e3, 
     0x28e4 : 0x10028e4,
     0x28e5 : 0x10028e5,
     0x28e6 : 0x10028e6,
