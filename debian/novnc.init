@@ -34,8 +34,8 @@ chown ${NOVA_USER} ${LOCK_DIR}
 . /lib/lsb/init-functions
 
 # Read config file
-[ -f "/etc/novnc/novnc.conf" ] && DAEMON_ARGS=$DAEMON_ARGS" --flagfile=/etc/novnc/novnc.conf"
-[ -f "/etc/nova/nova.conf" ] && DAEMON_ARGS=$DAEMON_ARGS" --flagfile=/etc/nova/nova.conf"
+[ -f "/etc/novnc/novnc.conf" ] && DAEMON_ARGS=$DAEMON_ARGS" --config-file=/etc/novnc/novnc.conf"
+[ -f "/etc/nova/nova.conf" ] && DAEMON_ARGS=$DAEMON_ARGS" --config-file=/etc/nova/nova.conf"
 
 do_start()
 {
