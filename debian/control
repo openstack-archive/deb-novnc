@@ -7,7 +7,7 @@ Uploaders: Loic Dachary (OuoU) <loic@debian.org>,
 	   Thomas Goirand <zigo@debian.org>
 Build-Depends: debhelper (>= 7.0.50), python-dev (>=2.6.6-3~), python-greenlet
 Standards-Version: 3.9.3
-Homepage: https://github.com/cloudbuilders/noVNC
+Homepage: http://github.com/kanaka/noVNC
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/novnc.git;a=summary
 Vcs-Git: git://anonscm.debian.org/openstack/novnc.git
 X-Python-Version: >= 2.6
