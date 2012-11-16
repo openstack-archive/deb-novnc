@@ -6,7 +6,8 @@ Uploaders: Loic Dachary (OuoU) <loic@debian.org>,
            Ghe Rivero <ghe.rivero@stackops.com>,
 	   Thomas Goirand <zigo@debian.org>,
            Mehdi Abaakouk <sileht@sileht.net>
-Build-Depends: debhelper (>= 7.0.50), python-dev (>=2.6.6-3~), python-greenlet
+Build-Depends: debhelper (>= 7.0.50), python-dev (>=2.6.6-3~)
+Build-Depends-Indep: openstack-pkg-tools, python-greenlet
 Standards-Version: 3.9.3
 Homepage: http://github.com/kanaka/noVNC
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/novnc.git;a=summary
