@@ -15,6 +15,7 @@ Vcs-Git: git://anonscm.debian.org/openstack/novnc.git
 
 Package: novnc
 Architecture: any
+Pre-Depends: dpkg (>= 1.15.6~)
 Depends: ${shlibs:Depends}, ${misc:Depends}, python-novnc, ${python:Depends},
  python (>= 2.6.6-3~),
  python-numpy,
@@ -26,6 +27,7 @@ Description: HTML5 VNC client
 Package: python-novnc
 Architecture: all
 Section: python
+Pre-Depends: dpkg (>= 1.15.6~)
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
   python (>= 2.6.6-3~)
 Description: HTML5 VNC client - libraries
