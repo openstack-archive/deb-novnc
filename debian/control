@@ -12,7 +12,6 @@ Standards-Version: 3.9.3
 Homepage: http://github.com/kanaka/noVNC
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/novnc.git;a=summary
 Vcs-Git: git://anonscm.debian.org/openstack/novnc.git
-X-Python-Version: >= 2.6
 
 Package: novnc
 Architecture: any
