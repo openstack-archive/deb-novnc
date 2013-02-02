@@ -6,12 +6,12 @@ Uploaders: Loic Dachary (OuoU) <loic@debian.org>,
            Ghe Rivero <ghe.rivero@stackops.com>,
 	   Thomas Goirand <zigo@debian.org>,
            Mehdi Abaakouk <sileht@sileht.net>
-Build-Depends: debhelper (>= 9), python-dev (>=2.6.6-3~)
-Build-Depends-Indep: openstack-pkg-tools, python-greenlet
-Standards-Version: 3.9.3
-Homepage: http://github.com/kanaka/noVNC
+Build-Depends: debhelper (>= 9), python-dev (>=2.6.6-3~), openstack-pkg-tools
+Build-Depends-Indep: python-greenlet
+Standards-Version: 3.9.4
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/novnc.git;a=summary
 Vcs-Git: git://anonscm.debian.org/openstack/novnc.git
+Homepage: http://github.com/kanaka/noVNC
 
 Package: novnc
 Architecture: any
@@ -21,8 +21,14 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, python-novnc, ${python:Depends},
  python-numpy,
  python-nova,
  adduser
-Description: HTML5 VNC client
- VNC client using HTML5 (WebSockets, Canvas) with encryption (wss://) support.
+Description: HTML5 VNC client - daemon and programs
+ noVNC is a HTML5 VNC (WebSockets, Canvas) with encryption (wss://) support
+ client that runs well in any modern browser including mobile browsers
+ (iPhone/iPad and Android). More than 16 companies/projects have integrated
+ noVNC into their products including Ganeti Web Manager, OpenStack, and
+ OpenNebula.
+ .
+ This package contains the daemon and programs.
 
 Package: python-novnc
 Architecture: all
@@ -31,6 +37,10 @@ Pre-Depends: dpkg (>= 1.15.6~)
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
   python (>= 2.6.6-3~)
 Description: HTML5 VNC client - libraries
- VNC client using HTML5 (WebSockets, Canvas) with encryption (wss://) support.
+ noVNC is a HTML5 VNC (WebSockets, Canvas) with encryption (wss://) support
+ client that runs well in any modern browser including mobile browsers
+ (iPhone/iPad and Android). More than 16 companies/projects have integrated
+ noVNC into their products including Ganeti Web Manager, OpenStack, and
+ OpenNebula.
  .
  This package installs the core Python parts of NoVNC.
