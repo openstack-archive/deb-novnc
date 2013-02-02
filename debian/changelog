@@ -17,6 +17,8 @@ novnc (1:0.4+dfsg+1-5) experimental; urgency=low
     build-depends are matching (sic!!!).
   * Pre-Depends: dpkg (>= 1.15.6~) because of xz compression.
   * Reviewed long description.
+  * Added a watch file.
+  * Added a patch description for the distutil patch.
 
  -- Thomas Goirand <zigo@debian.org>  Sat, 02 Feb 2013 16:47:45 +0000
 
