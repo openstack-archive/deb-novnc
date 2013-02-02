@@ -1,3 +1,7 @@
+Description: Fixes disutils (adds a setup.py, etc.).
+Author: Ghe Rivero <ghe@debian.org>
+Forwarded: no
+
 --- /dev/null
 +++ b/setup.py
 @@ -0,0 +1,14 @@
