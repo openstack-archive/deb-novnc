@@ -19,6 +19,7 @@ novnc (1:0.4+dfsg+1-5) experimental; urgency=low
   * Reviewed long description.
   * Added a watch file.
   * Added a patch description for the distutil patch.
+  * Added missing dependency python-nova.
 
  -- Thomas Goirand <zigo@debian.org>  Sat, 02 Feb 2013 16:47:45 +0000
 
