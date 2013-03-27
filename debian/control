@@ -16,11 +16,15 @@ Homepage: http://github.com/kanaka/noVNC
 Package: novnc
 Architecture: any
 Pre-Depends: dpkg (>= 1.15.6~)
-Depends: ${shlibs:Depends}, ${misc:Depends}, python-novnc, ${python:Depends},
+Depends: adduser,
  python (>= 2.6.6-3~),
- python-numpy,
  python-nova,
- adduser
+ python-novnc,
+ python-numpy,
+ websockify,
+ ${misc:Depends},
+ ${shlibs:Depends},
+ ${python:Depends}
 Description: HTML5 VNC client - daemon and programs
  noVNC is a HTML5 VNC (WebSockets, Canvas) with encryption (wss://) support
  client that runs well in any modern browser including mobile browsers
@@ -34,8 +38,11 @@ Package: python-novnc
 Architecture: all
 Section: python
 Pre-Depends: dpkg (>= 1.15.6~)
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
-  python (>= 2.6.6-3~), python-nova
+Depends: python (>= 2.6.6-3~),
+ python-nova,
+ ${shlibs:Depends},
+ ${misc:Depends},
+ ${python:Depends},
 Description: HTML5 VNC client - libraries
  noVNC is a HTML5 VNC (WebSockets, Canvas) with encryption (wss://) support
  client that runs well in any modern browser including mobile browsers

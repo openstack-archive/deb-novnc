@@ -7,4 +7,3 @@ utils/rebind.o usr/lib/novnc
 utils/nova-novncproxy usr/bin
 utils/rebind usr/bin
 utils/u2x11 usr/bin
-utils/websockify usr/bin

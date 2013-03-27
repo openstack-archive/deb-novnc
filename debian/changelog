@@ -1,3 +1,9 @@
+novnc (1:0.4+dfsg+1-6) experimental; urgency=low
+
+  * Removes /usr/bin/websockify, and now depends on the websockify package.
+
+ -- Thomas Goirand <zigo@debian.org>  Wed, 27 Mar 2013 22:26:08 +0800
+
 novnc (1:0.4+dfsg+1-5) experimental; urgency=low
 
   [ Mehdi Abaakouk ]
