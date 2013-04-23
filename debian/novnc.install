@@ -2,6 +2,7 @@
 favicon.ico	usr/share/novnc
 include/*.js	usr/share/novnc/include
 include/*.css	usr/share/novnc/include
+images usr/share/novnc
 utils/rebind.so usr/lib/novnc
 utils/rebind.o usr/lib/novnc
 utils/nova-novncproxy usr/bin

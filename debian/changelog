@@ -1,3 +1,10 @@
+novnc (1:0.4+dfsg+1-7) experimental; urgency=low
+
+  * Added missing usr/share/novnc folder (Closes: #705669), thanks to
+    Denis Laxalde <denis.laxalde@logilab.fr> for reporting it.
+
+ -- Thomas Goirand <zigo@debian.org>  Tue, 23 Apr 2013 21:53:58 +0800
+
 novnc (1:0.4+dfsg+1-6) experimental; urgency=low
 
   * Removes /usr/bin/websockify, and now depends on the websockify package.
