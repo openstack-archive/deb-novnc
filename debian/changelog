@@ -7,7 +7,8 @@ novnc (1:0.4+dfsg+1-7) experimental; urgency=low
 
 novnc (1:0.4+dfsg+1-6) experimental; urgency=low
 
-  * Removes /usr/bin/websockify, and now depends on the websockify package.
+  * Removes /usr/bin/websockify and /usr/bin/rebind, and now depends on the
+    websockify package which has them.
 
  -- Thomas Goirand <zigo@debian.org>  Wed, 27 Mar 2013 22:26:08 +0800
 
