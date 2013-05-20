@@ -4,6 +4,8 @@ novnc (1:0.4+dfsg+1+20130425+git4973b9cc80-1) unstable; urgency=low
   * New upstream release.
   * Added dependency on oslo-config.
   * Updated debian/patches/python-disutils.patch.
+  * Removed rebind and websockify from /usr/share/util, since they are
+    available in the websockify package.
 
  -- Thomas Goirand <zigo@debian.org>  Mon, 20 May 2013 23:55:04 +0800
 
