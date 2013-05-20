@@ -10,7 +10,7 @@ Forwarded: no
 +from distutils.core import setup
 +
 +setup(name='python-novnc',
-+      version='2012.1~e3',
++      version='0.4+dfsg+1+20130425+git4973b9cc80',
 +      description='NoVNC python libraries',
 +      author='Ghe Rivero',
 +      author_email='ghe.rivero@stackops.com',
@@ -23,28 +23,3 @@ Forwarded: no
 +++ b/utils/__init__.py
 @@ -0,0 +1 @@
 +# vim: tabstop=4 shiftwidth=4 softtabstop=4
-<<<<<<< HEAD
---- a/utils/nova-novncproxy
-+++ b/utils/nova-novncproxy
-@@ -26,7 +26,7 @@
- import socket
- import sys
- 
--import wsproxy
-+from novnc import wsproxy
- 
- from nova import context
- from nova import flags
---- a/utils/websockify
-+++ b/utils/websockify
-@@ -13,7 +13,7 @@
- 
- import socket, optparse, time, os, sys, subprocess
- from select import select
--from websocket import WebSocketServer
-+from novnc.websocket import WebSocketServer
- 
- class WebSocketProxy(WebSocketServer):
-     """
-=======
->>>>>>> c040054fdabf6efb78455c560f9a4090fed22b6b
