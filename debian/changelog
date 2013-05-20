@@ -8,6 +8,8 @@ novnc (1:0.4+dfsg+1+20130425+git4973b9cc80-1) unstable; urgency=low
     available in the websockify package.
   * Now depends on libjs-swfobject and use that file instead of the embbeded
     version.
+  * Switch novnc from arch: any to arch: all since there's no built binaries
+    in the package anymore (those are in websockify).
 
  -- Thomas Goirand <zigo@debian.org>  Mon, 20 May 2013 23:55:04 +0800
 

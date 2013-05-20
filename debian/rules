@@ -15,5 +15,6 @@ override_dh_clean:
 
 override_dh_fixperms:
 	dh_fixperms
+	rm -rf $(CURDIR)/debian/novnc/usr/share/novnc/utils
 	rm -f $(CURDIR)/debian/novnc/usr/share/novnc/include/web-socket-js/swfobject.js
 	ln -s ../../../javascript/swfobject/swfobject.js $(CURDIR)/debian/novnc/usr/share/novnc/include/web-socket-js/swfobject.js
