@@ -7,38 +7,37 @@ Copyright: 2011 Joel Martin <github@martintribe.org>
 License: LGPL-3
  See /usr/share/common-licenses/LGPL-3
 
-noVNC is Copyright (C) 2012 Joel Martin <github@martintribe.org>
+Files: *
+Copyright: (C) 2012 Joel Martin <github@martintribe.org>
+License:
+ noVNC is licensed under the MPL 2.0 (Mozilla Public License) with the
+ following exceptions:
+ .
+  *.html, *.css              : 2-Clause BSD license
+ .
+  include/Orbitron*          : SIL Open Font License 1.1
+                              (Copyright 2009 Matt McInerney)
+ .
+  images/                    : Creative Commons Attribution-ShareAlike
+                               http://creativecommons.org/licenses/by-sa/3.0/
+ .
+  include/base64.js          : MPL 2.0
+ .
+  include/des.js             : Various BSD style licenses
+ .
+  include/jsunzip.js         : zlib/libpng license
+ .
+  include/web-socket-js/     : New BSD license (3-clause). Source code at
+                               http://github.com/gimite/web-socket-js
+ .
+  include/chrome-app/tcp-stream.js
+                             : Apache 2.0 license
+ .
+  The MPL-2.0 license text may be found here:
+  http://www.mozilla.org/MPL/2.0/
 
 Files: include/base64.js
 Copyright: 2000 Digital Creations 2, Inc.
 License: GPL-2 or LGPL-2.1 or MPL-1.1
  See /usr/share/common-licenses/GPL-2
  See /usr/share/common-licenses/LGPL-2.1
-
-noVNC is licensed under the MPL 2.0 (Mozilla Public License) with the
-following exceptions:
-
-    *.html, *.css              : 2-Clause BSD license
-
-    include/Orbitron*          : SIL Open Font License 1.1
-                                 (Copyright 2009 Matt McInerney)
-
-    images/                    : Creative Commons Attribution-ShareAlike
-                                 http://creativecommons.org/licenses/by-sa/3.0/
-
-    include/base64.js          : MPL 2.0
-   
-    include/des.js             : Various BSD style licenses
-
-    include/jsunzip.js         : zlib/libpng license
-
-    include/web-socket-js/     : New BSD license (3-clause). Source code at
-                                 http://github.com/gimite/web-socket-js
-
-    include/chrome-app/tcp-stream.js
-                               : Apache 2.0 license
-
-----------------------------------------------------------------------
-
-The MPL-2.0 license text may be found here:
-    http://www.mozilla.org/MPL/2.0/
