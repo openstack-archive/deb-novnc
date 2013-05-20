@@ -6,6 +6,8 @@ novnc (1:0.4+dfsg+1+20130425+git4973b9cc80-1) unstable; urgency=low
   * Updated debian/patches/python-disutils.patch.
   * Removed rebind and websockify from /usr/share/util, since they are
     available in the websockify package.
+  * Now depends on libjs-swfobject and use that file instead of the embbeded
+    version.
 
  -- Thomas Goirand <zigo@debian.org>  Mon, 20 May 2013 23:55:04 +0800
 
