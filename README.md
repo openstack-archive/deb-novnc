@@ -3,86 +3,89 @@
 
 ### Description
 
-noVNC is a VNC client implemented using HTML5 technologies,
-specifically Canvas and WebSockets (supports 'wss://' encryption).
-noVNC is licensed under the
-[LGPLv3](http://www.gnu.org/licenses/lgpl.html).
+noVNC is a HTML5 VNC client that runs well in any modern browser
+including mobile browsers (iPhone/iPad and Android).
 
-Special thanks to [Sentry Data Systems](http://www.sentryds.com) for
-sponsoring ongoing development of this project (and for employing me).
+More than 16 companies/projects have integrated noVNC into their
+products including [Ganeti Web
+Manager](http://code.osuosl.org/projects/ganeti-webmgr),
+[OpenStack](http://www.openstack.org), and
+[OpenNebula](http://opennebula.org/). See [the Projects and Companies
+wiki page](https://github.com/kanaka/noVNC/wiki/ProjectsCompanies-using-noVNC)
+for more complete list.
+
+### News/help/contact
 
 Notable commits, announcements and news are posted to
 @<a href="http://www.twitter.com/noVNC">noVNC</a>
 
+If you are a noVNC developer/integrator/user (or want to be) please
+join the <a
+href="https://groups.google.com/forum/?fromgroups#!forum/novnc">noVNC
+discussion group</a>
+
+Bugs and feature requests can be submitted via [github
+issues](https://github.com/kanaka/noVNC/issues). If you are looking
+for a place to start contributing to noVNC, a good place to start
+would be the issues that I have marked as
+["patchwelcome"](https://github.com/kanaka/noVNC/issues?labels=patchwelcome).
+
+If you want to show appreciation for noVNC you could buy something off
+my [Amazon wishlist](http://www.amazon.com/registry/wishlist/XTXFXK39IA8C/?reveal=unpurchased&sort=priority&layout=compact) or you could donate to a great non-profits such as: [Compassion
+International](http://www.compassion.com/), [SIL](http://www.sil.org),
+[Habitat for Humanity](http://www.habitat.org), [Electronic Frontier
+Foundation](https://www.eff.org/), [Against Malaria
+Foundation](http://www.againstmalaria.com/), [Nothing But
+Nets](http://www.nothingbutnets.net/), etc.
+
+
+### Features
+
+* Supports all modern browsers including mobile (iOS, Android)
+* Supported VNC encodings: raw, copyrect, rre, hextile, tight, tightPNG
+* WebSocket SSL/TLS encryption (i.e. "wss://") support
+* 24-bit true color and 8 bit colour mapped
+* Supports desktop resize notification/pseudo-encoding
+* Local or remote cursor
+* Clipboard copy/paste
+* Clipping or scolling modes for large remote screens
+* Easy site integration and theming (3 example themes included)
+* Licensed under the [MPL 2.0](http://www.mozilla.org/MPL/2.0/)
 
 ### Screenshots
 
 Running in Chrome before and after connecting:
 
-<img src="http://kanaka.github.com/noVNC/img/noVNC-1.jpg" width=400>&nbsp;<img src="http://kanaka.github.com/noVNC/img/noVNC-2.jpg" width=400>
+<img src="http://kanaka.github.com/noVNC/img/noVNC-5.png" width=400>&nbsp;<img src="http://kanaka.github.com/noVNC/img/noVNC-7.jpg" width=400>
 
 See more screenshots <a href="http://kanaka.github.com/noVNC/screenshots.html">here</a>.
 
 
-### Projects/Companies using noVNC
-
-* [Sentry Data Systems](http://www.sentryds.com): uses noVNC in the
-  [Datanex Cloud Computing Platform](http://www.sentryds.com/products/datanex/).
-
-* [Ganeti Web Manager](http://code.osuosl.org/projects/ganeti-webmgr):
-  Feature [#1935](http://code.osuosl.org/issues/1935).
-
-* [Archipel](http://archipelproject.org):
-  [Video demo](http://antoinemercadal.fr/archipelblog/wp-content/themes/ArchipelWPTemplate/video_youtube.php?title=VNC%20Demonstration&id=te_bzW574Zo)
-
-* [openQRM](http://www.openqrm.com/): VNC plugin available
-  by request. Probably included in [version
-  4.8](http://www.openqrm.com/?q=node/15). [Video
-    demo](http://www.openqrm-enterprise.com/news/details/article/remote-vm-console-plugin-available.html).
-
-* [OpenNode](http://www.opennodecloud.com/): uses noVNC in
-  [OpenNode Management Console](http://opennode.activesys.org/about/software-included-in-opennode/).
-  [OMC Screencast](http://opennode.activesys.org/about/opennode-management-console-screencast/).
-
 ### Browser Requirements
 
-* HTML5 Canvas: Except for Internet Explorer, most
-  browsers have had Canvas support for quite some time. Internet
-  Explorer 9 will have Canvas support (finally).
+* HTML5 Canvas (with createImageData): Chrome, Firefox 3.6+, iOS
+  Safari, Opera 11+, Internet Explorer 9+, etc.
 
 * HTML5 WebSockets: For browsers that do not have builtin
   WebSockets support, the project includes
   <a href="http://github.com/gimite/web-socket-js">web-socket-js</a>,
-  a WebSockets emulator using Adobe Flash.
+  a WebSockets emulator using Adobe Flash. iOS 4.2+ has built-in
+  WebSocket support.
 
-* Fast Javascript Engine: noVNC avoids using new Javascript
-  functionality so it will run on older browsers, but decode and
-  rendering happen in Javascript, so a slow Javascript engine will
-  mean noVNC is painfully slow.
+* Fast Javascript Engine: this is not strictly a requirement, but
+  without a fast Javascript engine, noVNC might be painfully slow.
 
-* I maintain a more detailed list of browser compatibility <a
-  href="wiki/Browser-support">here</a>.
+* I maintain a more detailed browser compatibility list <a
+  href="https://github.com/kanaka/noVNC/wiki/Browser-support">here</a>.
 
 
 ### Server Requirements
 
 Unless you are using a VNC server with support for WebSockets
-connections (only my [fork of libvncserver](http://github.com/kanaka/libvncserver)
-currently), you need to use a WebSockets to TCP socket proxy. There is
-a python proxy included ('websockify'). One advantage of using the
-proxy is that it has builtin support for SSL/TLS encryption (i.e.
-"wss://").
-
-There a few reasons why a proxy is required:
-
-  1. WebSockets is not a pure socket protocol. There is an initial HTTP
-     like handshake to allow easy hand-off by web servers and allow
-     some origin policy exchange. Also, each WebSockets frame begins
-     with 0 ('\x00') and ends with 255 ('\xff').
-
-  2. Javascript itself does not have the ability to handle pure byte
-     arrays. The python proxy encodes the data as base64 so that the
-     Javascript client can decode the data as an integer array.
+connections (such as [x11vnc/libvncserver](http://libvncserver.sourceforge.net/) or
+[PocketVNC](http://www.pocketvnc.com/blog/?page_id=866)),
+you need to use a WebSockets to TCP socket proxy. There is
+a python proxy included ('websockify').
 
 
 ### Quick Start
@@ -100,11 +103,28 @@ There a few reasons why a proxy is required:
 
 ### Other Pages
 
-* [Advanced Usage](wiki/Advanced-usage). Generating an SSL
-  certificate, starting a VNC server, advanced websockify usage, etc.
+* [Encrypted Connections](https://github.com/kanaka/websockify/wiki/Encrypted-Connections). How to setup websockify so that you can use encrypted connections from noVNC.
 
-* [Integrating noVNC](wiki/Integration) into existing projects.
+* [Advanced Usage](https://github.com/kanaka/noVNC/wiki/Advanced-usage). Starting a VNC server, advanced websockify usage, etc.
 
-* [Troubleshooting noVNC](wiki/Troubleshooting) problems.
+* [Integrating noVNC](https://github.com/kanaka/noVNC/wiki/Integration) into existing projects.
+
+* [Troubleshooting noVNC](https://github.com/kanaka/noVNC/wiki/Troubleshooting) problems.
+
+
+### Authors/Contributors
+
+* noVNC : Joel Martin (github.com/kanaka)
+    * UI and Icons : Chris Gordon
+    * Original Logo : Michael Sersen
+    * tight encoding : Michael Tinglof (Mercuri.ca)
+
+* Included libraries:
+    * web-socket-js : Hiroshi Ichikawa (github.com/gimite/web-socket-js)
+    * as3crypto : Henri Torgemane (code.google.com/p/as3crypto)
+    * base64 : Martijn Pieters (Digital Creations 2), Samuel Sieb (sieb.net)
+    * jsunzip : Erik Moller (github.com/operasoftware/jsunzip),
+    * tinflate : Joergen Ibsen (ibsensoftware.com)
+    * DES : Dave Zimmerman (Widget Workshop), Jef Poskanzer (ACME Labs)
 
 

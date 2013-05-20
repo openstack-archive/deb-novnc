@@ -1,7 +1,7 @@
 /*
  * Websock: high-performance binary WebSockets
- * Copyright (C) 2011 Joel Martin
- * Licensed under LGPL-3 (see LICENSE.txt)
+ * Copyright (C) 2012 Joel Martin
+ * Licensed under MPL 2.0 (see LICENSE.txt)
  *
  * Websock is similar to the standard WebSocket object but Websock
  * enables communication with raw TCP sockets (i.e. the binary stream)
@@ -14,40 +14,45 @@
  * read binary data off of the receive queue.
  */
 
+/*jslint browser: true, bitwise: false, plusplus: false */
+/*global Util, Base64 */
+
 
 // Load Flash WebSocket emulator if needed
 
-if (window.WebSocket) {
+// To force WebSocket emulator even when native WebSocket available
+//window.WEB_SOCKET_FORCE_FLASH = true;
+// To enable WebSocket emulator debug:
+//window.WEB_SOCKET_DEBUG=1;
+
+if (window.WebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
     Websock_native = true;
+} else if (window.MozWebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
+    Websock_native = true;
+    window.WebSocket = window.MozWebSocket;
 } else {
     /* no builtin WebSocket so load web_socket.js */
+
     Websock_native = false;
     (function () {
-        function get_INCLUDE_URI() {
-            return (typeof INCLUDE_URI !== "undefined") ?
-                INCLUDE_URI : "include/";
-        }
-
-        var start = "<script src='" + get_INCLUDE_URI(),
-            end = "'><\/script>", extra = "";
-
-        WEB_SOCKET_SWF_LOCATION = get_INCLUDE_URI() +
-                    "web-socket-js/WebSocketMain.swf?" + Math.random();
+        window.WEB_SOCKET_SWF_LOCATION = Util.get_include_uri() +
+                    "web-socket-js/WebSocketMain.swf";
         if (Util.Engine.trident) {
             Util.Debug("Forcing uncached load of WebSocketMain.swf");
-            WEB_SOCKET_SWF_LOCATION += "?" + Math.random();
+            window.WEB_SOCKET_SWF_LOCATION += "?" + Math.random();
         }
-        extra += start + "web-socket-js/swfobject.js" + end;
-        extra += start + "web-socket-js/web_socket.js" + end;
-        document.write(extra);
+        Util.load_scripts(["web-socket-js/swfobject.js",
+                           "web-socket-js/web_socket.js"]);
     }());
 }
 
 
 function Websock() {
+"use strict";
 
 var api = {},         // Public API
     websocket = null, // WebSocket object
+    mode = 'base64',  // Current WebSocket mode: 'binary', 'base64'
     rQ = [],          // Receive queue
     rQi = 0,          // Receive queue index
     rQmax = 10000,    // Max receive queue size before compacting
@@ -58,7 +63,9 @@ var api = {},         // Public API
         'open'    : function() {},
         'close'   : function() {},
         'error'   : function() {}
-    };
+    },
+
+    test_mode = false;
 
 
 //
@@ -75,9 +82,9 @@ function get_rQ() {
 function get_rQi() {
     return rQi;
 }
-set_rQi = function(val) {
+function set_rQi(val) {
     rQi = val;
-};
+}
 
 function rQlen() {
     return rQ.length - rQi;
@@ -109,13 +116,13 @@ function rQshift32() {
            (rQ[rQi++]      );
 }
 function rQshiftStr(len) {
+    if (typeof(len) === 'undefined') { len = rQlen(); }
     var arr = rQ.slice(rQi, rQi + len);
     rQi += len;
-    return arr.map(function (num) {
-            return String.fromCharCode(num); } ).join('');
-
+    return String.fromCharCode.apply(null, arr);
 }
 function rQshiftBytes(len) {
+    if (typeof(len) === 'undefined') { len = rQlen(); }
     rQi += len;
     return rQ.slice(rQi-len, rQi);
 }
@@ -152,14 +159,27 @@ function rQwait(msg, num, goback) {
 //
 
 function encode_message() {
-    /* base64 encode */
-    return Base64.encode(sQ);
+    if (mode === 'binary') {
+        // Put in a binary arraybuffer
+        return (new Uint8Array(sQ)).buffer;
+    } else {
+        // base64 encode
+        return Base64.encode(sQ);
+    }
 }
 
 function decode_message(data) {
     //Util.Debug(">> decode_message: " + data);
-    /* base64 decode */
-    rQ = rQ.concat(Base64.decode(data, 0));
+    if (mode === 'binary') {
+        // push arraybuffer values onto the end
+        var u8 = new Uint8Array(data);
+        for (var i = 0; i < u8.length; i++) {
+            rQ.push(u8[i]);
+        }
+    } else {
+        // base64 decode and concat to the end
+        rQ = rQ.concat(Base64.decode(data, 0));
+    }
     //Util.Debug(">> decode_message, rQ: " + rQ);
 }
 
@@ -175,7 +195,7 @@ function flush() {
     if (websocket.bufferedAmount < api.maxBufferedAmount) {
         //Util.Debug("arr: " + arr);
         //Util.Debug("sQ: " + sQ);
-        if (sQ) {
+        if (sQ.length > 0) {
             websocket.send(encode_message(sQ));
             sQ = [];
         }
@@ -242,33 +262,102 @@ function on(evt, handler) {
     eventHandlers[evt] = handler;
 }
 
-function init() {
+function init(protocols) {
     rQ         = [];
     rQi        = 0;
     sQ         = [];
     websocket  = null;
+
+    var bt = false,
+        wsbt = false,
+        try_binary = false;
+
+    // Check for full typed array support
+    if (('Uint8Array' in window) &&
+        ('set' in Uint8Array.prototype)) {
+        bt = true;
+    }
+
+    // Check for full binary type support in WebSockets
+    // TODO: this sucks, the property should exist on the prototype
+    // but it does not.
+    try {
+        if (bt && ('binaryType' in (new WebSocket("ws://localhost:17523")))) {
+            Util.Info("Detected binaryType support in WebSockets");
+            wsbt = true;
+        }
+    } catch (exc) {
+        // Just ignore failed test localhost connections
+    }
+
+    // Default protocols if not specified
+    if (typeof(protocols) === "undefined") {
+        if (wsbt) {
+            protocols = ['binary', 'base64'];
+        } else {
+            protocols = 'base64';
+        }
+    }
+
+    // If no binary support, make sure it was not requested
+    if (!wsbt) {
+        if (protocols === 'binary') {
+            throw("WebSocket binary sub-protocol requested but not supported");
+        }
+        if (typeof(protocols) === "object") {
+            var new_protocols = [];
+            for (var i = 0; i < protocols.length; i++) {
+                if (protocols[i] === 'binary') {
+                    Util.Error("Skipping unsupported WebSocket binary sub-protocol");
+                } else {
+                    new_protocols.push(protocols[i]);
+                }
+            }
+            if (new_protocols.length > 0) {
+                protocols = new_protocols;
+            } else {
+                throw("Only WebSocket binary sub-protocol was requested and not supported.");
+            }
+        }
+    }
+
+    return protocols;
 }
 
-function open(uri) {
-    init();
+function open(uri, protocols) {
+    protocols = init(protocols);
 
-    websocket = new WebSocket(uri);
+    if (test_mode) {
+        websocket = {};
+    } else {
+        websocket = new WebSocket(uri, protocols);
+        if (protocols.indexOf('binary') >= 0) {
+            websocket.binaryType = 'arraybuffer';
+        }
+    }
 
     websocket.onmessage = recv_message;
-    websocket.onopen = function(e) {
+    websocket.onopen = function() {
         Util.Debug(">> WebSock.onopen");
+        if (websocket.protocol) {
+            mode = websocket.protocol;
+            Util.Info("Server chose sub-protocol: " + websocket.protocol);
+        } else {
+            mode = 'base64';
+            Util.Error("Server select no sub-protocol!: " + websocket.protocol);
+        }
         eventHandlers.open();
         Util.Debug("<< WebSock.onopen");
     };
     websocket.onclose = function(e) {
         Util.Debug(">> WebSock.onclose");
-        eventHandlers.close();
+        eventHandlers.close(e);
         Util.Debug("<< WebSock.onclose");
     };
     websocket.onerror = function(e) {
-        Util.Debug("<< WebSock.onerror: " + e);
+        Util.Debug(">> WebSock.onerror: " + e);
         eventHandlers.error(e);
-        Util.Debug("<< WebSock.onerror: ");
+        Util.Debug("<< WebSock.onerror");
     };
 }
 
@@ -281,6 +370,16 @@ function close() {
         }
         websocket.onmessage = function (e) { return; };
     }
+}
+
+// Override internal functions for testing
+// Takes a send function, returns reference to recv function
+function testMode(override_send, data_mode) {
+    test_mode = true;
+    mode = data_mode;
+    api.send = override_send;
+    api.close = function () {};
+    return recv_message;
 }
 
 function constructor() {
@@ -309,11 +408,11 @@ function constructor() {
     api.send         = send;
     api.send_string  = send_string;
 
-    api.recv_message = recv_message;
     api.on           = on;
     api.init         = init;
     api.open         = open;
     api.close        = close;
+    api.testMode     = testMode;
 
     return api;
 }

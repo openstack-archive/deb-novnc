@@ -1,14 +1,14 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>VNC Performance Benchmark</title>
-        <link rel="stylesheet" href="../include/plain.css">
     </head>
     <body>
 
         Passes: <input id='passes' style='width:50' value=3>&nbsp;
 
         <input id='startButton' type='button' value='Start' style='width:100px'
-            onclick="start();" disabled>&nbsp;
+            onclick="do_test();" disabled>&nbsp;
 
         <br><br>
 
@@ -37,12 +37,18 @@
 
     <script type="text/javascript">
         var INCLUDE_URI= "../include/";
+        // TODO: Data file should override
+        var VNC_frame_encoding = "base64";
     </script>
-    <script src="../include/vnc.js"></script>
+    <script src="../include/util.js"></script>
     <script src="../include/playback.js"></script>
-    <script src="data/multi.js"></script>
+    <script src="../data/multi.js"></script>
 
     <script>
+        // Load supporting scripts
+        Util.load_scripts(["webutil.js", "base64.js", "websock.js", "des.js",
+                           "input.js", "display.js", "jsunzip.js", "rfb.js"]);
+
         var start_time, VNC_frame_data, pass, passes, encIdx,
             encOrder = ['raw', 'rre', 'hextile', 'tightpng', 'copyrect'],
             encTot = {}, encMin = {}, encMax = {},
@@ -79,7 +85,7 @@
             }
         }
 
-        function start() {
+        function do_test() {
             $D('startButton').value = "Running";
             $D('startButton').disabled = true;
 
@@ -125,7 +131,9 @@
                 pass += 1;
                 if (pass > passes) {
                     // We are finished
-                    rfb.get_canvas().stop();   // Shut-off event interception
+                    // Shut-off event interception
+                    rfb.get_mouse().ungrab();
+                    rfb.get_keyboard().ungrab();
                     $D('startButton').disabled = false;
                     $D('startButton').value = "Start";
                     finish_passes();
@@ -185,7 +193,7 @@
                 " (min/avg/max)");
         }
 
-        window.onload = function() {
+        window.onscriptsload = function() {
             var i, enc;
             dbgmsg("Frame lengths:");
             for (i = 0; i < encOrder.length; i++) {
@@ -194,7 +202,7 @@
             }
             rfb = new RFB({'target': $D('VNC_canvas'),
                            'updateState': updateState});
-            rfb.testMode(send_array);
+            rfb.testMode(send_array, VNC_frame_encoding);
         }
     </script>
 </html>
