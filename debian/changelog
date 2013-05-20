@@ -10,6 +10,8 @@ novnc (1:0.4+dfsg+1+20130425+git4973b9cc80-1) unstable; urgency=low
     version.
   * Switch novnc from arch: any to arch: all since there's no built binaries
     in the package anymore (those are in websockify).
+  * Delete the debian/novnc.init, because the init script is in nova-novncproxy
+    already.
 
  -- Thomas Goirand <zigo@debian.org>  Mon, 20 May 2013 23:55:04 +0800
 
