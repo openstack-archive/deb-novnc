@@ -40,6 +40,7 @@ Section: python
 Pre-Depends: dpkg (>= 1.15.6~)
 Depends: python (>= 2.6.6-3~),
  python-nova,
+ python-oslo.config,
  ${shlibs:Depends},
  ${misc:Depends},
  ${python:Depends},

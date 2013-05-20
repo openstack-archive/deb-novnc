@@ -1,3 +1,11 @@
+novnc (1:0.4+dfsg+1+20130425+git4973b9cc80-1) unstable; urgency=low
+
+  * Uploading to unstable.
+  * New upstream release.
+  * Added dependency on oslo-config.
+
+ -- Thomas Goirand <zigo@debian.org>  Mon, 20 May 2013 23:55:04 +0800
+
 novnc (1:0.4+dfsg+1-7) experimental; urgency=low
 
   * Added missing usr/share/novnc folder (Closes: #705669), thanks to
