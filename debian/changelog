@@ -12,6 +12,7 @@ novnc (1:0.4+dfsg+1+20130425+git4973b9cc80-1) unstable; urgency=low
     in the package anymore (those are in websockify).
   * Delete the debian/novnc.init, because the init script is in nova-novncproxy
     already.
+  * Ran wrap-and-sort.
 
  -- Thomas Goirand <zigo@debian.org>  Mon, 20 May 2013 23:55:04 +0800
 
