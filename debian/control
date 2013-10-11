@@ -2,8 +2,7 @@ Source: novnc
 Section: web
 Priority: optional
 Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
-Uploaders: Loic Dachary (OuoU) <loic@debian.org>,
-           Ghe Rivero <ghe.rivero@stackops.com>,
+Uploaders: Ghe Rivero <ghe.rivero@stackops.com>,
            Thomas Goirand <zigo@debian.org>,
            Mehdi Abaakouk <sileht@sileht.net>
 Build-Depends: debhelper (>= 9), openstack-pkg-tools, python (>=2.6.6-3~)
