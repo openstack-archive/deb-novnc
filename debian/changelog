@@ -1,3 +1,12 @@
+novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-1) unstable; urgency=low
+
+  * New upstream release (well, a more recent commit since upstream isn't
+    doing much tagged release...).
+  * Kill the wrong patch that landed in the master-dfsg branch somehow, and
+    broke novnc (Closes #718889).
+
+ -- Thomas Goirand <zigo@debian.org>  Fri, 11 Oct 2013 22:28:34 +0800
+
 novnc (1:0.4+dfsg+1+20130425+git4973b9cc80-1) unstable; urgency=low
 
   * Uploading to unstable.
