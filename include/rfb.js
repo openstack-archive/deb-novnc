@@ -35,7 +35,6 @@ var that           = {},  // Public API methods
     //
     // Private RFB namespace variables
     //
-    nova_token      = '',
     rfb_host       = '',
     rfb_port       = 5900,
     rfb_password   = '',
@@ -1784,7 +1783,6 @@ clientCutText = function(text) {
 that.connect = function(host, port, password, path) {
     //Util.Debug(">> connect");
 
-    nova_token     = token;
     rfb_host       = host;
     rfb_port       = port;
     rfb_password   = (password !== undefined)   ? password : "";
