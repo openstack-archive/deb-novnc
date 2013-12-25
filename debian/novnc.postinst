@@ -2,9 +2,27 @@
 
 set -e
 
+pkgos_adduser () {
+	local VAR_UG_PKG_NAME
+	VAR_UG_PKG_NAME=${1}
+
+	# Create user and groups if they don't exist
+	if ! getent group ${VAR_UG_PKG_NAME} > /dev/null 2>&1 ; then
+		addgroup --quiet --system ${VAR_UG_PKG_NAME}
+	fi
+	if ! getent passwd ${VAR_UG_PKG_NAME} > /dev/null 2>&1 ; then
+		adduser --system \
+			--home /var/lib/${VAR_UG_PKG_NAME} \
+			--no-create-home \
+			--quiet \
+			--disabled-password \
+			--shell /bin/bash \
+			--group ${VAR_UG_PKG_NAME}
+	fi
+}
+
 if [ "$1" = "configure" ]; then
-	addgroup --quiet --system nova
-	adduser --quiet --system --home /var/lib/nova --ingroup nova --no-create-home --shell /bin/bash nova
+	pkgos_adduser nova
 fi
 
 #DEBHELPER#

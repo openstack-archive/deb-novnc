@@ -1,3 +1,9 @@
+novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-2) unstable; urgency=medium
+
+  * Do not create nova user and group if they already exist.
+
+ -- Thomas Goirand <zigo@debian.org>  Wed, 25 Dec 2013 16:47:06 +0800
+
 novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-1) unstable; urgency=low
 
   * New upstream release (well, a more recent commit since upstream isn't
