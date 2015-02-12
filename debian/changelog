@@ -1,3 +1,10 @@
+novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-3) unstable; urgency=medium
+
+  * Drops python-nova as a direct dependency, and only puts it as a
+    Recommends:.
+
+ -- Thomas Goirand <zigo@debian.org>  Thu, 12 Feb 2015 22:52:35 +0100
+
 novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-2) unstable; urgency=medium
 
   * Do not create nova user and group if they already exist.

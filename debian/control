@@ -18,13 +18,13 @@ Pre-Depends: dpkg (>= 1.15.6~)
 Depends: adduser,
          libjs-swfobject,
          python (>= 2.6.6-3~),
-         python-nova,
          python-novnc,
          python-numpy,
          websockify,
          ${misc:Depends},
          ${python:Depends},
          ${shlibs:Depends}
+Recommends: python-nova
 Description: HTML5 VNC client - daemon and programs
  noVNC is a HTML5 VNC (WebSockets, Canvas) with encryption (wss://) support
  client that runs well in any modern browser including mobile browsers
@@ -39,11 +39,11 @@ Architecture: all
 Section: python
 Pre-Depends: dpkg (>= 1.15.6~)
 Depends: python (>= 2.6.6-3~),
-         python-nova,
          python-oslo.config,
          ${misc:Depends},
          ${python:Depends},
          ${shlibs:Depends}
+Recommends: python-nova
 Description: HTML5 VNC client - libraries
  noVNC is a HTML5 VNC (WebSockets, Canvas) with encryption (wss://) support
  client that runs well in any modern browser including mobile browsers
