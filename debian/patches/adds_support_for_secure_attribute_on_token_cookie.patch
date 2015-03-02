@@ -1,0 +1,47 @@
+Description: Adds support for secure attribute on token cookie
+ This patch adds support for the secure attribute on token cookies (sent by
+ nova-novncproxy). If the https is used to transfer the cookie, the secure
+ attribute is set thus restricting server requestes to secure conections only.
+ This should prevent man-in-the-middle attacks.
+Author: Takashi Natsume <natsume.takashi@lab.ntt.co.jp>
+Date: Mon, 28 Oct 2013 12:02:30 +0000
+Origin: upstream, https://github.com/kanaka/noVNC/commit/ad941faddead705cd611921730054767a0b32dcd
+Last-Update: 2015-03-02
+
+diff --git a/include/webutil.js b/include/webutil.js
+index ebf8e89..5ceccbe 100644
+--- a/include/webutil.js
++++ b/include/webutil.js
+@@ -1,6 +1,7 @@
+ /*
+  * noVNC: HTML5 VNC client
+  * Copyright (C) 2012 Joel Martin
++ * Copyright (C) 2013 NTT corp.
+  * Licensed under MPL 2.0 (see LICENSE.txt)
+  *
+  * See README.md for usage and integration instructions.
+@@ -94,16 +95,20 @@ WebUtil.getQueryVar = function(name, defVal) {
+ 
+ // No days means only for this browser session
+ WebUtil.createCookie = function(name,value,days) {
+-    var date, expires;
++    var date, expires, secure;
+     if (days) {
+         date = new Date();
+         date.setTime(date.getTime()+(days*24*60*60*1000));
+         expires = "; expires="+date.toGMTString();
+-    }
+-    else {
++    } else {
+         expires = "";
+     }
+-    document.cookie = name+"="+value+expires+"; path=/";
++    if (document.location.protocol === "https:") {
++        secure = "; secure";
++    } else {
++        secure = "";
++    }
++    document.cookie = name+"="+value+expires+"; path=/"+secure;
+ };
+ 
+ WebUtil.readCookie = function(name, defaultValue) {

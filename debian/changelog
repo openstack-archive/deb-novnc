@@ -1,3 +1,10 @@
+novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-4) unstable; urgency=high
+
+  * Adds security patch (Closes: #778618):
+    adds_support_for_secure_attribute_on_token_cookie.patch
+
+ -- Thomas Goirand <zigo@debian.org>  Mon, 02 Mar 2015 17:27:07 +0100
+
 novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-3) unstable; urgency=medium
 
   * Drops python-nova as a direct dependency, and only puts it as a
