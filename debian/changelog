@@ -2,6 +2,12 @@ novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-4) unstable; urgency=high
 
   * Adds security patch (Closes: #778618):
     adds_support_for_secure_attribute_on_token_cookie.patch
+  * Adds a source.lintian-overrides for include/logo.js. This is a logo, and
+    not code source, so I believe it should be fine. Moreover, the file in
+    include/logo.js.png is the source, and running "base64 include/logo.js.png"
+    generates the same data, so it is my point of view that we're in the case
+    of a false positive. If one difers, please provide the patch to generate
+    the logo.js out of the logo.js.png file.
 
  -- Thomas Goirand <zigo@debian.org>  Mon, 02 Mar 2015 17:27:07 +0100
 
