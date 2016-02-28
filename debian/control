@@ -10,7 +10,7 @@ Build-Depends-Indep: python-greenlet
 Standards-Version: 3.9.4
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/novnc.git;a=summary
 Vcs-Git: git://anonscm.debian.org/openstack/novnc.git
-Homepage: http://github.com/kanaka/noVNC
+Homepage: https://github.com/kanaka/noVNC
 
 Package: novnc
 Architecture: all
