@@ -3,6 +3,7 @@ novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-5) UNRELEASED; urgency=medium
   * Fixed homepage (https).
   * Fixed VCS URLs (https).
   * d/rules: Changed UPSTREAM_GIT protocol to https
+  * d/copyright: Changed source URL to https protocol
 
  -- Ondřej Nový <novy@ondrej.org>  Sun, 28 Feb 2016 15:30:55 +0100
 

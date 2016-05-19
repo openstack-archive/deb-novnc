@@ -1,6 +1,6 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: novnc
-Source: git://github.com/kanaka/noVNC.git
+Source: https://github.com/kanaka/noVNC
 
 Files: *
 Copyright: 2011 Joel Martin <github@martintribe.org>
