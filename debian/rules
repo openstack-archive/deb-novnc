@@ -2,7 +2,7 @@
 
 # export DH_VERBOSE=1
 
-UPSTREAM_GIT := git://github.com/kanaka/noVNC.git
+UPSTREAM_GIT := https://github.com/kanaka/noVNC.git
 
 include /usr/share/openstack-pkg-tools/pkgos.make
 
