@@ -8,8 +8,8 @@ Uploaders: Ghe Rivero <ghe.rivero@stackops.com>,
 Build-Depends: debhelper (>= 9), openstack-pkg-tools, python (>=2.6.6-3~)
 Build-Depends-Indep: python-greenlet
 Standards-Version: 3.9.4
-Vcs-Browser: https://anonscm.debian.org/cgit/openstack/novnc.git/
-Vcs-Git: https://anonscm.debian.org/git/openstack/novnc.git
+Vcs-Browser: https://git.openstack.org/cgit/openstack/deb-novnc?h=debian%2Fnewton
+Vcs-Git: https://git.openstack.org/openstack/deb-novnc -b debian/newton
 Homepage: https://github.com/kanaka/noVNC
 
 Package: novnc
