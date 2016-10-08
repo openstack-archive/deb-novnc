@@ -19,5 +19,6 @@ include/web-socket-js/*   /usr/share/novnc/include/web-socket-js
 include/websock.js   /usr/share/novnc/include
 include/webutil.js   /usr/share/novnc/include
 utils/Makefile   /usr/share/novnc/utils
+utils/launch.sh  /usr/share/novnc/utils
 vnc.html	/usr/share/novnc
 vnc_auto.html	/usr/share/novnc

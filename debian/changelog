@@ -1,5 +1,6 @@
-novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-5) UNRELEASED; urgency=medium
+novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-6) unstable; urgency=medium
 
+  [ Ondřej Nový ]
   * Fixed homepage (https).
   * Fixed VCS URLs (https).
   * d/rules: Changed UPSTREAM_GIT protocol to https
@@ -7,7 +8,15 @@ novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-5) UNRELEASED; urgency=medium
   * d/s/options: extend-diff-ignore of .gitreview
   * d/control: Using OpenStack's Gerrit as VCS URLs.
 
- -- Ondřej Nový <novy@ondrej.org>  Sun, 28 Feb 2016 15:30:55 +0100
+  [ Thomas Goirand ]
+  * Applied patch contributed in launchpad (Closes: #837997).
+  * Ran wrap-and-sort -t -a.
+  * Build-depends on dh-python.
+  * Removed Pre-Depends: dpkg (>= 1.15.6~).
+  * Removed inactive uploaders.
+  * Standards-Version: 3.9.8 (no change).
+
+ -- Thomas Goirand <zigo@debian.org>  Sun, 09 Oct 2016 01:00:48 +0200
 
 novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-4) unstable; urgency=high
 
