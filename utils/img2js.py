@@ -10,7 +10,7 @@ import sys, base64
 
 try:
     from PIL import Image
-except:
+except Exception:
     print "python PIL module required (python-imaging package)"
     sys.exit(1)
 
