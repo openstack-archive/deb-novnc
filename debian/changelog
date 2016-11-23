@@ -1,3 +1,9 @@
+novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-7) UNRELEASED; urgency=medium
+
+  * Bumped debhelper compat version to 10
+
+ -- Ondřej Nový <onovy@debian.org>  Thu, 24 Nov 2016 00:01:21 +0100
+
 novnc (1:0.4+dfsg+1+20131010+gitf68af8af3d-6) unstable; urgency=medium
 
   [ Ondřej Nový ]
